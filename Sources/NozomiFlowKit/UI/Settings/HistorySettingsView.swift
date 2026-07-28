@@ -218,19 +218,26 @@ private struct StatCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 4) {
+            // The label owns the full width; sharing a row with the icon left so
+            // little room that "Corrections" wrapped mid-word. Two lines are always
+            // reserved so every card is the same height whether its label wraps or
+            // not, which also keeps the glass material reading identically across
+            // the row.
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(2, reservesSpace: true)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 5) {
                 Image(systemName: icon)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(tint)
-                Text(label)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.system(size: 19, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .animation(.smooth, value: value)
             }
-            Text(value)
-                .font(.system(size: 19, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .contentTransition(.numericText())
-                .animation(.smooth, value: value)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)

@@ -47,8 +47,8 @@ final class OnboardingController: NSObject {
         win.contentView = host
         win.setContentSize(Self.windowSize)
         win.center()
+        WindowActivation.beginWindowSession()
         win.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
     }
 
     private static let windowSize = NSSize(width: 560, height: 620)
@@ -60,6 +60,7 @@ final class OnboardingController: NSObject {
     func close() {
         window?.orderOut(nil)
         window?.contentView = nil
+        WindowActivation.endWindowSession()
     }
 
     private func makeWindow() -> NSWindow {

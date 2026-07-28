@@ -58,22 +58,21 @@ struct OnboardingTryItStep: View {
     }
 
     private var playgroundCard: some View {
-        ZStack(alignment: .topLeading) {
-            if playgroundText.isEmpty {
-                Text("Click here, then hold \(settings.dictationKey.displayName) and say something…")
-                    .font(.body)
-                    .foregroundStyle(.tertiary)
-                    .padding(.top, 9)
-                    .padding(.leading, 6)
-                    .allowsHitTesting(false)
-            }
-            TextEditor(text: $playgroundText)
-                .font(.body)
-                .scrollContentBackground(.hidden)
-                .focused($isFocused)
-        }
-        .padding(10)
-        .frame(minHeight: 100)
+        // A vertical TextField rather than a TextEditor with a hand-placed
+        // placeholder on top: the overlay had to guess AppKit's text inset, and the
+        // guess was wrong, so the caret sat above and left of the placeholder it was
+        // supposed to share a baseline with. A native prompt cannot drift.
+        TextField(
+            "Click here, then hold \(settings.dictationKey.displayName) and say something…",
+            text: $playgroundText,
+            axis: .vertical
+        )
+        .textFieldStyle(.plain)
+        .font(.body)
+        .lineLimit(3...)
+        .focused($isFocused)
+        .padding(12)
+        .frame(minHeight: 100, alignment: .topLeading)
         .glassEffect(.regular, in: .rect(cornerRadius: 16))
     }
 

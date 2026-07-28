@@ -14,7 +14,7 @@ enum SettingsTab: String, CaseIterable {
 /// shared `SettingsTabSelection` observable so callers (menu bar, onboarding)
 /// can jump straight to a given tab without tearing the window down.
 @MainActor
-final class SettingsWindowController {
+final class SettingsWindowController: NSObject {
     private let appState: AppState
     private let settings: SettingsStore
     private let dictionary: PersonalDictionaryStore
@@ -54,14 +54,23 @@ final class SettingsWindowController {
                 backing: .buffered,
                 defer: false
             )
-            w.title = "Nozomi Flow Settings"
+            w.title = "Nozomi Flow"
             w.contentView = NSHostingView(rootView: root)
             w.minSize = NSSize(width: 680, height: 480)
             w.center()
             w.isReleasedWhenClosed = false
+            w.delegate = self
             window = w
         }
+        WindowActivation.beginWindowSession()
         window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+    }
+}
+
+extension SettingsWindowController: NSWindowDelegate {
+    /// Demote back to an accessory app once Settings goes away, so the Dock tile
+    /// and menu bar do not linger for a menu-bar-only app.
+    func windowWillClose(_ notification: Notification) {
+        WindowActivation.endWindowSession()
     }
 }
