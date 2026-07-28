@@ -1,0 +1,1 @@
+Dün akşam Sentry'de yeni bir issue açılmış, staging build'de crash var. Analytics tarafında purchase eventi düşmüyor, muhtemelen token-only event gidiyor. Branch açıp fix'i yazdım, PR'ı review'a gönderdim. Merge ettikten sonra TestFlight'a yeni build atacağım.

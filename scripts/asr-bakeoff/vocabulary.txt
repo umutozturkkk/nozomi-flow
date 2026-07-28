@@ -1,0 +1,30 @@
+# Domain vocabulary fed to the cleanup pass. One term per line, blank lines and
+# lines starting with # are ignored. Replace this list with your own.
+#
+# OpenRouter silently drops the OpenAI "prompt" parameter on the transcription
+# endpoint, so vocabulary cannot bias the ASR itself. It is applied after the
+# fact instead, which is also how the app runs it.
+#
+# Beware entries that share a stem with an ordinary word: listing "RevenueCat"
+# made the cleanup model rewrite a correct "revenue event" into "RevenueCat
+# event". Prefer names that cannot be confused with normal vocabulary.
+
+Nozomi Flow
+
+Sentry
+Firebase
+TestFlight
+Xcode
+SwiftUI
+Expo
+
+issue
+crash
+build
+branch
+merge
+deploy
+revert
+commit
+review
+release

@@ -1,0 +1,5 @@
+__pycache__/
+samples/
+smoke/
+report*.md
+results*.json
