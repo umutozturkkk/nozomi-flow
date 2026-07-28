@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-/// The six stops of first-run setup, in order. Raw values double as the
+/// The seven stops of first-run setup, in order. Raw values double as the
 /// progress-dot index, so `OnboardingProgressDots` and Back/Continue math
 /// stay trivial.
 enum OnboardingStep: Int, CaseIterable, Hashable {
@@ -9,6 +9,8 @@ enum OnboardingStep: Int, CaseIterable, Hashable {
     case microphone
     case accessibility
     case hotkey
+    /// Must precede `speechModel`, which prepares assets for the chosen locale.
+    case transcription
     case speechModel
     case tryIt
 }
@@ -68,6 +70,8 @@ struct OnboardingRootView: View {
                 )
             case .hotkey:
                 OnboardingHotkeyStep(settings: settings, onBack: retreat, onNext: advance)
+            case .transcription:
+                OnboardingTranscriptionStep(settings: settings, onBack: retreat, onNext: advance)
             case .speechModel:
                 OnboardingSpeechModelStep(appState: appState, settings: settings, transcriber: transcriber, onBack: retreat, onNext: advance)
             case .tryIt:

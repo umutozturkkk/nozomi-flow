@@ -170,6 +170,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { [weak self] in
             guard let self else { return }
             let locale = self.settings.resolvedLocale
+            // Without this the engine still thinks it is on-device at launch, so the
+            // onboarding model step would download assets the user opted out of.
+            (self.transcriber as? CloudConfigurableTranscriber)?
+                .updateCloudConfig(self.settings.cloudTranscriptionConfig)
             self.appState.currentEngine = await self.transcriber.engineKind(for: locale)
             do {
                 try await self.transcriber.prepare(locale: locale) { progress in

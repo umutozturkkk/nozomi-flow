@@ -84,7 +84,12 @@ final class SettingsStore {
     /// Far more accurate on Turkish mixed with English technical terms, at the cost of
     /// the audio leaving the machine and there being no live partial transcript.
     var cloudTranscriptionEnabled: Bool = false {
-        didSet { persist(cloudTranscriptionEnabled, "cloudTranscriptionEnabled") }
+        didSet {
+            persist(cloudTranscriptionEnabled, "cloudTranscriptionEnabled")
+            // Same signal as a locale change: which engine will run has changed, so
+            // whoever prepares the transcriber needs to look again.
+            if !isLoading { NotificationCenter.default.post(name: .murmurLocaleChanged, object: nil) }
+        }
     }
     var cloudTranscriptionModel: String = "microsoft/mai-transcribe-1.5" {
         didSet { persist(cloudTranscriptionModel, "cloudTranscriptionModel") }

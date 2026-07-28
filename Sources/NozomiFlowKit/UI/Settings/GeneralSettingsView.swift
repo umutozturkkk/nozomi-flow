@@ -37,7 +37,7 @@ struct GeneralSettingsView: View {
             Section {
                 Picker("Language", selection: $settings.localeIdentifier) {
                     Text("System language").tag(nil as String?)
-                    ForEach(Self.curatedLocales) { option in
+                    ForEach(LocaleCatalog.curated) { option in
                         Text(option.label).tag(option.identifier as String?)
                     }
                 }
@@ -89,35 +89,4 @@ struct GeneralSettingsView: View {
             .foregroundStyle(.orange)
     }
 
-    // MARK: - Curated locale list
-
-    private struct LocaleOption: Identifiable {
-        let identifier: String
-        let label: String
-        var id: String { identifier }
-    }
-
-    /// The on-device DictationTranscriber locale set (see SPEC.md ground truth).
-    private static let curatedLocaleIdentifiers = [
-        "en_US", "en_GB", "en_AU", "en_CA", "en_IN",
-        "de_DE", "de_AT", "de_CH",
-        "es_ES", "es_MX", "es_US", "es_CL",
-        "fr_FR", "fr_CA", "fr_BE", "fr_CH",
-        "it_IT", "it_CH",
-        "pt_BR", "pt_PT",
-        "ja_JP", "ko_KR",
-        "zh_CN", "zh_TW", "zh_HK", "yue_CN",
-        "tr_TR", "ar_SA", "ru_RU", "uk_UA", "pl_PL",
-        "nl_NL", "nl_BE",
-        "sv_SE", "da_DK", "nb_NO", "fi_FI",
-        "cs_CZ", "sk_SK", "hu_HU", "ro_RO",
-        "el_GR", "he_IL", "hi_IN", "th_TH", "vi_VN",
-        "id_ID", "ms_MY", "ca_ES", "hr_HR",
-    ]
-
-    private static let curatedLocales: [LocaleOption] = curatedLocaleIdentifiers
-        .map { id in
-            LocaleOption(identifier: id, label: Locale.current.localizedString(forIdentifier: id) ?? id)
-        }
-        .sorted { $0.label.localizedStandardCompare($1.label) == .orderedAscending }
 }
