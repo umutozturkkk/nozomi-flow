@@ -51,6 +51,8 @@ final class CloudTranscriptionSession: TranscriptionBackendSession, @unchecked S
     /// 16 kHz mono PCM16 is 32 KB/s, so this caps a runaway hands-free session at
     /// about 19 MB rather than letting it grow until the app is killed.
     private static let maxRecordedSeconds = 600.0
+    /// One converter pull's worth of input; matches the mic tap's requested size.
+    private static let conversionSliceFrames: AVAudioFrameCount = 4096
 
     private let config: CloudTranscriptionConfig
     private let languageCode: String?
@@ -85,8 +87,17 @@ final class CloudTranscriptionSession: TranscriptionBackendSession, @unchecked S
         let done = torndown
         lock.unlock()
         guard !done else { return }
-        guard let converted = convert(buffer) else { return }
-        append(converted)
+        // Fed in slices, never whole: AVAudioConverter takes only as many frames as
+        // it asked for and discards the remainder of the buffer it was handed. The
+        // mic tap requests 4096 frames, but that size is a request and a device is
+        // free to deliver more, at which point the tail would be dropped in silence.
+        var offset: AVAudioFrameCount = 0
+        while offset < buffer.frameLength {
+            let count = min(Self.conversionSliceFrames, buffer.frameLength - offset)
+            guard let slice = PCMConverter.slice(buffer, from: offset, count: count) else { return }
+            if let converted = convert(slice) { append(converted) }
+            offset += count
+        }
     }
 
     func finish() async throws -> String {
