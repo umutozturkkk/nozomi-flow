@@ -67,6 +67,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hud: HUDController!
     private var settingsWindow: SettingsWindowController!
     private var onboarding: OnboardingController!
+    private var meetingStore: MeetingStore!
+    private var meetings: MeetingSessionController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         settings = SettingsStore()
@@ -78,6 +80,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         formatter = FormatterPipeline()
         inserter = TextInserter()
         contextProvider = AppContextProvider()
+        meetingStore = MeetingStore()
+        meetings = MeetingSessionController(settings: settings, store: meetingStore)
         hotkeys = HotkeyMonitor(settings: settings)
         sounds = SoundPlayer(settings: settings)
 
@@ -102,7 +106,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settings: settings,
             dictionary: dictionary,
             history: history,
-            permissions: permissions
+            permissions: permissions,
+            meetingStore: meetingStore
         )
         onboarding = OnboardingController(
             appState: appState,
@@ -117,7 +122,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settings: settings,
             openSettings: { [weak self] in self?.settingsWindow.show(tab: .general) },
             openHistory: { [weak self] in self?.settingsWindow.show(tab: .history) },
-            openOnboarding: { [weak self] in self?.onboarding.show() }
+            openOnboarding: { [weak self] in self?.onboarding.show() },
+            toggleMeeting: { [weak self] in self?.meetings.toggle() },
+            meetingPhase: { [weak self] in self?.meetings.phase ?? .idle }
         )
         coordinator.onNeedsPermissions = { [weak self] in self?.onboarding.show() }
         onboarding.onAccessibilityGranted = { [weak self] in self?.accessibilityMayHaveChanged() }

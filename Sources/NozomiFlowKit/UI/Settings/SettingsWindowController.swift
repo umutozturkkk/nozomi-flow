@@ -5,6 +5,7 @@ enum SettingsTab: String, CaseIterable {
     case general = "General"
     case style = "Style"
     case dictionary = "Dictionary"
+    case meetings = "Meetings"
     case history = "History"
     case about = "About"
 }
@@ -20,6 +21,7 @@ final class SettingsWindowController: NSObject {
     private let dictionary: PersonalDictionaryStore
     private let history: HistoryStore
     private let permissions: PermissionsService
+    private let meetingStore: MeetingStore
     private let tabSelection = SettingsTabSelection()
     private var window: NSWindow?
 
@@ -28,13 +30,15 @@ final class SettingsWindowController: NSObject {
         settings: SettingsStore,
         dictionary: PersonalDictionaryStore,
         history: HistoryStore,
-        permissions: PermissionsService
+        permissions: PermissionsService,
+        meetingStore: MeetingStore
     ) {
         self.appState = appState
         self.settings = settings
         self.dictionary = dictionary
         self.history = history
         self.permissions = permissions
+        self.meetingStore = meetingStore
     }
 
     func show(tab: SettingsTab = .general) {
@@ -46,7 +50,8 @@ final class SettingsWindowController: NSObject {
                 settings: settings,
                 dictionary: dictionary,
                 history: history,
-                permissions: permissions
+                permissions: permissions,
+                meetingStore: meetingStore
             )
             let w = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 760, height: 540),

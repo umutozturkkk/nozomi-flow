@@ -26,6 +26,7 @@ extension SettingsTab {
         case .general: return "gearshape"
         case .style: return "wand.and.stars"
         case .dictionary: return "character.book.closed"
+        case .meetings: return "person.2.wave.2"
         case .history: return "clock.arrow.circlepath"
         case .about: return "info.circle"
         }
@@ -36,6 +37,7 @@ extension SettingsTab {
         case .general: return .gray
         case .style: return .purple
         case .dictionary: return .orange
+        case .meetings: return .teal
         case .history: return .blue
         case .about: return .indigo
         }

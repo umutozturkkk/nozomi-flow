@@ -103,6 +103,13 @@ final class SettingsStore {
         }
     }
 
+    /// Chat model that writes meeting notes. Separate from the cleanup model: a
+    /// summary is worth a stronger model than a per-dictation tidy-up, and it runs
+    /// once per meeting rather than once per sentence.
+    var meetingSummaryModel: String = "google/gemini-2.5-flash-lite" {
+        didSet { persist(meetingSummaryModel, "meetingSummaryModel") }
+    }
+
     var cloudTranscriptionConfig: CloudTranscriptionConfig {
         CloudTranscriptionConfig(
             isEnabled: cloudTranscriptionEnabled,
@@ -176,6 +183,7 @@ final class SettingsStore {
         }
         cloudTranscriptionModel = defaults.string(forKey: "cloudTranscriptionModel") ?? "microsoft/mai-transcribe-1.5"
         cloudTranscriptionKey = KeychainHelper.get(account: "cloud_asr_api_key") ?? ""
+        meetingSummaryModel = defaults.string(forKey: "meetingSummaryModel") ?? "google/gemini-2.5-flash-lite"
         if defaults.object(forKey: "playSounds") != nil { playSounds = defaults.bool(forKey: "playSounds") }
         if defaults.object(forKey: "showLiveTranscript") != nil { showLiveTranscript = defaults.bool(forKey: "showLiveTranscript") }
         if defaults.object(forKey: "historyEnabled") != nil { historyEnabled = defaults.bool(forKey: "historyEnabled") }

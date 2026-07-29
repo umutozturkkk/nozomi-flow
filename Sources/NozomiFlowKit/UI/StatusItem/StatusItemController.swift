@@ -10,6 +10,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let openSettings: () -> Void
     private let openHistory: () -> Void
     private let openOnboarding: () -> Void
+    private let toggleMeeting: () -> Void
+    private let meetingPhase: () -> MeetingPhase
 
     /// Quick-switch options surfaced directly in the menu; the full locale
     /// list lives in Settings > General. nil identifier = follow the system.
@@ -34,7 +36,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         settings: SettingsStore,
         openSettings: @escaping () -> Void,
         openHistory: @escaping () -> Void,
-        openOnboarding: @escaping () -> Void
+        openOnboarding: @escaping () -> Void,
+        toggleMeeting: @escaping () -> Void,
+        meetingPhase: @escaping () -> MeetingPhase
     ) {
         self.appState = appState
         self.coordinator = coordinator
@@ -42,6 +46,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         self.openSettings = openSettings
         self.openHistory = openHistory
         self.openOnboarding = openOnboarding
+        self.toggleMeeting = toggleMeeting
+        self.meetingPhase = meetingPhase
         super.init()
 
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -81,6 +87,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         pause.target = self
         pause.tag = MenuTag.pause.rawValue
         menu.addItem(pause)
+
+        let meeting = NSMenuItem(title: "Record Meeting", action: #selector(toggleMeetingRecording), keyEquivalent: "")
+        meeting.target = self
+        meeting.tag = MenuTag.meeting.rawValue
+        menu.addItem(meeting)
 
         let language = NSMenuItem(title: "Language", action: nil, keyEquivalent: "")
         language.tag = MenuTag.language.rawValue
@@ -127,6 +138,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         case engineHeader = 104
         case statsHeader = 105
         case language = 106
+        case meeting = 107
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
@@ -150,6 +162,22 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
 
         menu.item(withTag: MenuTag.pause.rawValue)?.title = appState.isPaused ? "Resume Nozomi Flow" : "Pause Nozomi Flow"
+
+        // The one control that has to say what it will do next, not what is happening:
+        // a meeting runs for an hour and the menu is how it gets stopped.
+        if let meetingItem = menu.item(withTag: MenuTag.meeting.rawValue) {
+            switch meetingPhase() {
+            case .idle, .failed:
+                meetingItem.title = "Record Meeting"
+                meetingItem.isEnabled = true
+            case .recording:
+                meetingItem.title = "Stop Recording"
+                meetingItem.isEnabled = true
+            case .processing:
+                meetingItem.title = "Writing notes…"
+                meetingItem.isEnabled = false
+            }
+        }
         menu.item(withTag: MenuTag.copyLast.rawValue)?.isEnabled = appState.lastFinalText != nil
         // A session in flight can't be interrupted by the debug trigger.
         menu.item(withTag: MenuTag.testDictation.rawValue)?.isEnabled = appState.phase.canStartNewSession
@@ -204,5 +232,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let pb = NSPasteboard.general
         pb.clearContents()
         pb.setString(text, forType: .string)
+    }
+}
+
+extension StatusItemController {
+    @objc fileprivate func toggleMeetingRecording() {
+        toggleMeeting()
     }
 }

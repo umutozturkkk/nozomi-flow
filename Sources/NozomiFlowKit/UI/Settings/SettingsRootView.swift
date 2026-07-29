@@ -10,6 +10,7 @@ struct SettingsRootView: View {
     let dictionary: PersonalDictionaryStore
     let history: HistoryStore
     let permissions: PermissionsService
+    let meetingStore: MeetingStore
 
     var body: some View {
         NavigationSplitView {
@@ -37,6 +38,8 @@ struct SettingsRootView: View {
             StyleSettingsView(settings: settings, appState: appState)
         case .dictionary:
             DictionarySettingsView(dictionary: dictionary)
+        case .meetings:
+            MeetingsSettingsView(store: meetingStore)
         case .history:
             HistorySettingsView(settings: settings, history: history)
         case .about:
