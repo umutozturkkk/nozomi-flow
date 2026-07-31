@@ -3,12 +3,16 @@ import CoreGraphics
 import AppKit
 
 /// Where a meeting recording currently is.
+///
+/// There is no failure state on purpose: a meeting that could not start is reported
+/// through `onFailure` and leaves the controller idle. A phase the controller could
+/// not leave would look identical to idle in the menu while silently swallowing
+/// every later attempt.
 enum MeetingPhase: Equatable {
     case idle
     case recording(startedAt: Date)
     /// Chunks are uploading and the summary is being written.
     case processing
-    case failed(String)
 
     var isRecording: Bool {
         if case .recording = self { return true }
@@ -17,8 +21,38 @@ enum MeetingPhase: Equatable {
 
     var isBusy: Bool {
         if case .idle = self { return false }
-        if case .failed = self { return false }
         return true
+    }
+}
+
+/// Why a meeting was refused or lost, in a form the UI can act on: a permission
+/// problem needs a different button from a configuration one.
+enum MeetingFailure: Equatable {
+    case cloudTranscriptionOff
+    case screenRecordingDenied
+    case couldNotStart
+    case couldNotSaveNotes
+
+    var title: String {
+        switch self {
+        case .cloudTranscriptionOff, .screenRecordingDenied, .couldNotStart:
+            return "Meeting not started"
+        case .couldNotSaveNotes:
+            return "Meeting notes not saved"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .cloudTranscriptionOff:
+            return "Meetings are transcribed in the cloud. Turn on cloud transcription and add your API key in Settings."
+        case .screenRecordingDenied:
+            return "Nozomi Flow needs Screen Recording permission to hear the other side of the call. Nothing on your screen is recorded or kept. Quit and reopen the app after granting it."
+        case .couldNotStart:
+            return "The recording could not be started. Check that another app is not already capturing audio, then try again."
+        case .couldNotSaveNotes:
+            return "The meeting was recorded but its notes could not be written to disk."
+        }
     }
 }
 
@@ -33,8 +67,13 @@ enum MeetingPhase: Equatable {
 @Observable
 final class MeetingSessionController {
     private(set) var phase: MeetingPhase = .idle
-    /// Set once notes are written, so the UI can offer to open them.
-    private(set) var lastSaved: MeetingRecord?
+
+    /// Called when a meeting is refused or its notes are lost. The controller is idle
+    /// again by then, so the handler reports the problem rather than clearing a state.
+    @ObservationIgnored var onFailure: ((MeetingFailure) -> Void)?
+    /// Called once notes are on disk, so the UI can offer to open them. Nothing else
+    /// marks the end of a meeting: the work finishes minutes after the user stopped it.
+    @ObservationIgnored var onNotesReady: ((MeetingRecord) -> Void)?
 
     @ObservationIgnored private let settings: SettingsStore
     @ObservationIgnored private let store: MeetingStore
@@ -80,12 +119,14 @@ final class MeetingSessionController {
     func start() async {
         guard case .idle = phase else { return }
         guard settings.cloudTranscriptionConfig.isUsable else {
-            phase = .failed("Meetings need cloud transcription turned on in Settings.")
+            onFailure?(.cloudTranscriptionOff)
             return
         }
         guard Self.hasScreenRecordingPermission else {
+            // macOS only shows this prompt once per app; afterwards the alert's
+            // button to System Settings is the only way through.
             Self.requestScreenRecordingPermission()
-            phase = .failed("Screen Recording permission is needed to hear the other side.")
+            onFailure?(.screenRecordingDenied)
             return
         }
 
@@ -116,7 +157,7 @@ final class MeetingSessionController {
             phase = .recording(startedAt: started)
         } catch {
             Log.audio.error("meeting start failed: \(error.localizedDescription)")
-            phase = .failed("Could not start recording.")
+            onFailure?(.couldNotStart)
         }
     }
 
@@ -154,8 +195,9 @@ final class MeetingSessionController {
         if record != nil { store.discardWorkingFiles(for: sessionID) }
         self.sessionID = nil
         self.startedAt = nil
-        lastSaved = record
-        phase = record == nil ? .failed("Could not write the meeting notes.") : .idle
+        phase = .idle
+
+        if let record { onNotesReady?(record) } else { onFailure?(.couldNotSaveNotes) }
     }
 
     /// Starts a chunk uploading immediately and remembers the task so `stop` can

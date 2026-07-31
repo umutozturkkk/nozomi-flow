@@ -167,7 +167,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         // a meeting runs for an hour and the menu is how it gets stopped.
         if let meetingItem = menu.item(withTag: MenuTag.meeting.rawValue) {
             switch meetingPhase() {
-            case .idle, .failed:
+            case .idle:
                 meetingItem.title = "Record Meeting"
                 meetingItem.isEnabled = true
             case .recording:

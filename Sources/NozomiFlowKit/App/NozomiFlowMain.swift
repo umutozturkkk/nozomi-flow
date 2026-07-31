@@ -126,6 +126,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             toggleMeeting: { [weak self] in self?.meetings.toggle() },
             meetingPhase: { [weak self] in self?.meetings.phase ?? .idle }
         )
+        meetings.onFailure = { [weak self] failure in
+            MeetingAlert.presentFailure(failure) { self?.settingsWindow.show(tab: .general) }
+        }
+        meetings.onNotesReady = { MeetingAlert.presentNotes($0) }
         coordinator.onNeedsPermissions = { [weak self] in self?.onboarding.show() }
         onboarding.onAccessibilityGranted = { [weak self] in self?.accessibilityMayHaveChanged() }
         statusItem.historyProvider = { [weak history] in history?.stats ?? UsageStats() }

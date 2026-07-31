@@ -53,15 +53,17 @@ final class MeetingRecorder: @unchecked Sendable {
         if let finished { onChunk?(finished) }
     }
 
-    /// Closes whatever is still buffered. Returns the trailing chunks so a caller
-    /// that only wants the finished recording does not have to observe `onChunk`.
+    /// Closes whatever is still buffered and hands the trailing chunks back.
+    ///
+    /// Deliberately does not fire `onChunk` for them: the caller already has them as
+    /// the return value, and announcing them as well had the session controller queue
+    /// each one for upload twice.
     func finish() -> [MeetingChunk] {
         lock.lock()
         let trailing = writers.values.compactMap { $0.flush() }
         writers.removeAll()
         lock.unlock()
-        for chunk in trailing.sorted(by: { $0.startOffset < $1.startOffset }) { onChunk?(chunk) }
-        return trailing
+        return trailing.sorted { $0.startOffset < $1.startOffset }
     }
 }
 

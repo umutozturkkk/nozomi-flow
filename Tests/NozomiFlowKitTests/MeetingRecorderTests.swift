@@ -133,6 +133,21 @@ final class MeetingRecorderTests: XCTestCase {
         XCTAssertEqual(trailing.first?.track, .microphone)
     }
 
+    func testTrailingChunkIsReportedOnceNotTwice() throws {
+        let recorder = try MeetingRecorder(directory: tempDir, chunker: MeetingChunker())
+        var announced: [MeetingChunk] = []
+        recorder.onChunk = { announced.append($0) }
+
+        recorder.accept(.microphone, buffer: buffer(loud(seconds: 0.3)))
+        let trailing = recorder.finish()
+
+        XCTAssertEqual(trailing.count, 1)
+        XCTAssertTrue(
+            announced.isEmpty,
+            "a chunk that finish() returns must not also be announced: the caller queues both and would upload it twice"
+        )
+    }
+
     func testWrittenChunkIsAReadableWAVOfTheRightLength() throws {
         let recorder = try MeetingRecorder(directory: tempDir, chunker: MeetingChunker())
         let samples = loud(seconds: 0.5)
