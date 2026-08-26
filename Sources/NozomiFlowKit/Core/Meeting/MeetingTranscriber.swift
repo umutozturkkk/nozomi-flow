@@ -82,7 +82,8 @@ final class MeetingTranscriber {
                 track: chunk.track,
                 startOffset: chunk.startOffset,
                 duration: chunk.duration,
-                text: text.trimmingCharacters(in: .whitespacesAndNewlines)
+                text: text.trimmingCharacters(in: .whitespacesAndNewlines),
+                speaker: chunk.speaker
             )
         } catch {
             Log.asr.error("meeting chunk upload failed: \(error.localizedDescription)")

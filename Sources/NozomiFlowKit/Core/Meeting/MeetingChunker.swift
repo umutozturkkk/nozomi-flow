@@ -25,9 +25,23 @@ struct MeetingChunker {
     /// rather than the gap between two words.
     var silenceWindowSeconds: Double = 0.4
 
+    /// A speaker change below this much accumulated audio is not worth a chunk. A
+    /// lively exchange would otherwise produce one upload per interjection. The cost
+    /// is that a very short interjection is absorbed into a neighbouring chunk and
+    /// labelled with whoever held most of it.
+    var minimumSpeakerSeconds: Double = 5
+    /// How far back to hunt for the pause that a speaker change sits in.
+    var speakerLookbackSeconds: Double = 4
+    /// How far captions trail the audio they describe. Google has to hear the words
+    /// before it can render them, so a change announced now happened slightly ago.
+    /// Only used when no pause can be found, which means the speakers talked over
+    /// each other and no cut is truly right.
+    var captionLagSeconds: Double = 1.5
+
     private var targetFrames: Int { Int(targetSeconds * Double(Self.sampleRate)) }
     private var maximumFrames: Int { Int(maximumSeconds * Double(Self.sampleRate)) }
     private var silenceFrames: Int { Int(silenceWindowSeconds * Double(Self.sampleRate)) }
+    private var minimumSpeakerFrames: Int { Int(minimumSpeakerSeconds * Double(Self.sampleRate)) }
 
     /// Whether `samples` should be closed off as a chunk now.
     ///
@@ -39,6 +53,52 @@ struct MeetingChunker {
         guard samples.count >= targetFrames else { return false }
         guard samples.count < maximumFrames else { return true }
         return Self.isQuiet(samples.suffix(silenceFrames), threshold: silenceThreshold)
+    }
+
+    /// How many samples to keep when the meeting UI reports a new speaker, or nil to
+    /// let the chunk run on.
+    ///
+    /// The caption change proposes the cut and the audio picks the exact sample: a
+    /// speaker change almost always sits in a small pause, and cutting there is both
+    /// more accurate than compensating for caption lag and self-correcting when the
+    /// lag varies.
+    func speakerCutPoint(in samples: [Int16]) -> Int? {
+        guard samples.count >= minimumSpeakerFrames else { return nil }
+        if let pause = pauseCutPoint(in: samples, lookbackSeconds: speakerLookbackSeconds), pause > 0 {
+            return pause
+        }
+        let compensated = samples.count - Int(captionLagSeconds * Double(Self.sampleRate))
+        return compensated > 0 ? compensated : nil
+    }
+
+    /// Start of the most recent quiet window within `lookbackSeconds` of the tail,
+    /// or nil when the speaker talked straight through the boundary.
+    ///
+    /// Prefix sums rather than re-measuring every candidate window: the search covers
+    /// four seconds of 16 kHz audio and the naive form is quadratic over it.
+    func pauseCutPoint(in samples: [Int16], lookbackSeconds: Double) -> Int? {
+        let window = silenceFrames
+        guard window > 0 else { return nil }
+
+        let lookback = Int(lookbackSeconds * Double(Self.sampleRate))
+        let lowerBound = max(0, samples.count - lookback)
+        guard samples.count - lowerBound >= window else { return nil }
+
+        let region = Array(samples[lowerBound...])
+        var prefix = [Double](repeating: 0, count: region.count + 1)
+        for index in 0..<region.count {
+            prefix[index + 1] = prefix[index] + Double(abs(Int(region[index])))
+        }
+
+        // Latest quiet window wins: the cut belongs at the speaker's most recent
+        // pause, not their first one four seconds ago.
+        var start = region.count - window
+        while start >= 0 {
+            let mean = (prefix[start + window] - prefix[start]) / Double(window)
+            if mean < silenceThreshold { return lowerBound + start }
+            start -= 1
+        }
+        return nil
     }
 
     /// Mean absolute amplitude, which is cheap and stable enough for a pause test.

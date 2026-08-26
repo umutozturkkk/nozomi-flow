@@ -6,6 +6,9 @@ struct MeetingSegment: Equatable {
     let startOffset: TimeInterval
     let duration: TimeInterval
     let text: String
+    /// Carried through from the chunk this came from. Nil whenever nothing was
+    /// reading the meeting UI, which is the case the transcript still has to render.
+    var speaker: String?
 
     var endOffset: TimeInterval { startOffset + duration }
 }
@@ -32,7 +35,11 @@ enum MeetingTranscript {
     /// Orders segments by when they were spoken and coalesces consecutive turns from
     /// the same speaker, so one person talking across three chunks reads as one turn
     /// rather than three.
-    static func merge(_ segments: [MeetingSegment]) -> [TranscriptLine] {
+    ///
+    /// - Parameter userName: what to call the microphone's owner. Falls back to the
+    ///   track's own label when empty, so a user who never set a name still gets a
+    ///   readable transcript.
+    static func merge(_ segments: [MeetingSegment], userName: String? = nil) -> [TranscriptLine] {
         let spoken = segments
             .filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             // Track breaks the tie so a mic and system chunk starting together always
@@ -41,8 +48,9 @@ enum MeetingTranscript {
 
         var lines: [TranscriptLine] = []
         for segment in spoken {
+            let label = Self.label(for: segment, userName: userName)
             let text = segment.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            if let last = lines.last, last.speaker == segment.track.speakerLabel {
+            if let last = lines.last, last.speaker == label {
                 lines[lines.count - 1] = TranscriptLine(
                     speaker: last.speaker,
                     startOffset: last.startOffset,
@@ -50,13 +58,27 @@ enum MeetingTranscript {
                 )
             } else {
                 lines.append(TranscriptLine(
-                    speaker: segment.track.speakerLabel,
+                    speaker: label,
                     startOffset: segment.startOffset,
                     text: text
                 ))
             }
         }
         return lines
+    }
+
+    /// A real name when one was read off the meeting UI, and the track's own label
+    /// otherwise. Both cases have to read well: captions get turned off, and meetings
+    /// happen in windows nothing can read.
+    static func label(for segment: MeetingSegment, userName: String?) -> String {
+        if let speaker = segment.speaker?.trimmingCharacters(in: .whitespaces), !speaker.isEmpty {
+            return speaker
+        }
+        if segment.track == .microphone, let userName = userName?.trimmingCharacters(in: .whitespaces),
+           !userName.isEmpty {
+            return userName
+        }
+        return segment.track.speakerLabel
     }
 
     /// Renders the transcript as markdown, which is what gets written to disk and

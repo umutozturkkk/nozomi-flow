@@ -68,6 +68,27 @@ struct GeneralSettingsView: View {
             .animation(.spring(response: 0.3, dampingFraction: 0.85), value: settings.cloudTranscriptionEnabled)
 
             Section {
+                Toggle("Identify who is speaking", isOn: $settings.meetingSpeakerDetectionEnabled)
+                TextField("Your name", text: $settings.userDisplayName, prompt: Text(NSFullUserName()))
+            } header: {
+                Text("Meetings")
+            } footer: {
+                if settings.meetingSpeakerDetectionEnabled {
+                    Text("""
+                        Nozomi Flow reads the meeting window's captions and participant \
+                        list so notes can say who said what. This happens on this Mac, \
+                        and nothing from your screen is saved or sent anywhere. \
+                        Turn captions on in the meeting for this to work, and use the \
+                        name you appear under there so your own turns are not counted twice.
+                        """)
+                } else {
+                    Text("Notes will label the two sides of the call as You and Them.")
+                }
+            }
+            .animation(.spring(response: 0.3, dampingFraction: 0.85),
+                       value: settings.meetingSpeakerDetectionEnabled)
+
+            Section {
                 Toggle("Play sounds", isOn: $settings.playSounds)
                 Toggle("Show live transcript in HUD", isOn: $settings.showLiveTranscript)
                 Toggle("Keep history", isOn: $settings.historyEnabled)

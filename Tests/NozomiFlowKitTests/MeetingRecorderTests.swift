@@ -160,6 +160,103 @@ final class MeetingRecorderTests: XCTestCase {
         XCTAssertEqual(chunk.duration, 0.5, accuracy: 1e-6)
     }
 
+    // MARK: - Cutting on a speaker change
+
+    func testSpeakerCutLandsInThePause() throws {
+        // The caption change proposes the boundary and the audio picks the sample.
+        // Cutting where the caption arrived would land one to three seconds into the
+        // next person, since Google has to hear the words before it can render them.
+        let chunker = MeetingChunker()
+        let samples = loud(seconds: 6) + quiet(seconds: 0.5)
+        let cut = try XCTUnwrap(chunker.speakerCutPoint(in: samples))
+
+        XCTAssertGreaterThanOrEqual(cut, 6 * rate, "the cut belongs in the pause, not in the speech")
+        XCTAssertLessThanOrEqual(cut, samples.count)
+    }
+
+    func testSpeakerCutCompensatesForCaptionLagWhenNobodyPaused() throws {
+        // People talked over each other, so no cut is truly right and the best
+        // available answer is to undo the caption engine's lag.
+        let chunker = MeetingChunker()
+        let samples = loud(seconds: 10)
+        let cut = try XCTUnwrap(chunker.speakerCutPoint(in: samples))
+
+        XCTAssertEqual(cut, samples.count - Int(1.5 * Double(rate)))
+    }
+
+    func testSpeakerCutIsRefusedWhileTheChunkIsTooShort() {
+        // Otherwise a lively exchange becomes one upload per interjection.
+        XCTAssertNil(MeetingChunker().speakerCutPoint(in: loud(seconds: 3)))
+    }
+
+    func testAPauseOlderThanTheLookbackIsNotACutPoint() {
+        let chunker = MeetingChunker()
+        let samples = loud(seconds: 5) + quiet(seconds: 0.5) + loud(seconds: 5)
+        XCTAssertNil(chunker.pauseCutPoint(in: samples, lookbackSeconds: 4))
+    }
+
+    func testSpeakerChangeClosesTheChunkAndStampsWhoHeldIt() throws {
+        let recorder = try MeetingRecorder(directory: tempDir, chunker: MeetingChunker())
+        var chunks: [MeetingChunk] = []
+        recorder.onChunk = { chunks.append($0) }
+
+        recorder.speakerChanged(to: "Ahmet")
+        recorder.accept(.system, buffer: buffer(loud(seconds: 6)))
+        recorder.accept(.system, buffer: buffer(quiet(seconds: 0.5)))
+        recorder.speakerChanged(to: "Ayşe")
+
+        XCTAssertEqual(chunks.count, 1, "the far side's turn ended, so its chunk should have")
+        XCTAssertEqual(chunks.first?.track, .system)
+        XCTAssertEqual(chunks.first?.speaker, "Ahmet",
+                       "the label belongs to whoever filled the chunk, not whoever spoke next")
+    }
+
+    func testAudioAfterTheCutOpensTheNextChunk() throws {
+        let recorder = try MeetingRecorder(directory: tempDir, chunker: MeetingChunker())
+        var chunks: [MeetingChunk] = []
+        recorder.onChunk = { chunks.append($0) }
+
+        recorder.speakerChanged(to: "Ahmet")
+        recorder.accept(.system, buffer: buffer(loud(seconds: 6)))
+        recorder.accept(.system, buffer: buffer(quiet(seconds: 0.5)))
+        recorder.speakerChanged(to: "Ayşe")
+        recorder.accept(.system, buffer: buffer(loud(seconds: 2)))
+
+        let trailing = recorder.finish().filter { $0.track == .system }
+        let first = try XCTUnwrap(chunks.first)
+        let second = try XCTUnwrap(trailing.first)
+
+        XCTAssertEqual(second.speaker, "Ayşe")
+        XCTAssertEqual(first.endOffset, second.startOffset, accuracy: 1e-6,
+                       "the tail past the cut must open the next chunk, not be dropped")
+    }
+
+    func testSpeakerChangeBelowTheMinimumKeepsTheChunkOpen() throws {
+        let recorder = try MeetingRecorder(directory: tempDir, chunker: MeetingChunker())
+        var chunks: [MeetingChunk] = []
+        recorder.onChunk = { chunks.append($0) }
+
+        recorder.speakerChanged(to: "Ahmet")
+        recorder.accept(.system, buffer: buffer(loud(seconds: 2)))
+        recorder.speakerChanged(to: "Ayşe")
+
+        XCTAssertTrue(chunks.isEmpty, "a two second interjection is not worth its own upload")
+    }
+
+    func testMicrophoneIgnoresSpeakerChanges() throws {
+        // The microphone already has exactly one speaker, and cutting it on someone
+        // else's caption would fragment the user's own audio for nothing.
+        let recorder = try MeetingRecorder(directory: tempDir, chunker: MeetingChunker())
+        var chunks: [MeetingChunk] = []
+        recorder.onChunk = { chunks.append($0) }
+
+        recorder.accept(.microphone, buffer: buffer(loud(seconds: 6)))
+        recorder.speakerChanged(to: "Ayşe")
+
+        XCTAssertTrue(chunks.isEmpty)
+        XCTAssertEqual(recorder.finish().filter { $0.track == .microphone }.count, 1)
+    }
+
     // MARK: - Helpers
 
     private func loud(seconds: Double) -> [Int16] {

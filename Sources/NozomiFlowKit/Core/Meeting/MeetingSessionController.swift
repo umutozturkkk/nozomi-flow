@@ -47,7 +47,7 @@ enum MeetingFailure: Equatable {
         case .cloudTranscriptionOff:
             return "Meetings are transcribed in the cloud. Turn on cloud transcription and add your API key in Settings."
         case .screenRecordingDenied:
-            return "Nozomi Flow needs Screen Recording permission to hear the other side of the call. Nothing on your screen is recorded or kept. Quit and reopen the app after granting it."
+            return "Nozomi Flow needs Screen Recording permission to hear the other side of the call. No screen images are captured or kept. Quit and reopen the app after granting it."
         case .couldNotStart:
             return "The recording could not be started. Check that another app is not already capturing audio, then try again."
         case .couldNotSaveNotes:
@@ -84,6 +84,8 @@ final class MeetingSessionController {
     @ObservationIgnored private var pendingUploads: [Task<MeetingSegment?, Never>] = []
     @ObservationIgnored private var sessionID: String?
     @ObservationIgnored private var startedAt: Date?
+    @ObservationIgnored private var speakerSource: MeetingSpeakerSource?
+    @ObservationIgnored private var timeline = SpeakerTimeline()
 
     init(settings: SettingsStore, store: MeetingStore) {
         self.settings = settings
@@ -154,10 +156,47 @@ final class MeetingSessionController {
             self.transcriber = transcriber
             self.capture = capture
             self.pendingUploads = []
+            self.timeline = SpeakerTimeline()
+            self.timeline.localName = settings.resolvedUserDisplayName
             phase = .recording(startedAt: started)
+
+            if settings.meetingSpeakerDetectionEnabled {
+                await attachSpeakerSource(to: recorder)
+            }
         } catch {
             Log.audio.error("meeting start failed: \(error.localizedDescription)")
             onFailure?(.couldNotStart)
+        }
+    }
+
+    /// Starts watching the meeting window for speaker names, or gives up quietly.
+    ///
+    /// Failure is logged and never surfaced. A meeting that records without names is
+    /// still a good meeting, and an alert as a call is starting is worse feedback
+    /// than a slightly weaker note the user reads afterwards.
+    private func attachSpeakerSource(to recorder: MeetingRecorder) async {
+        let source = MeetAccessibilitySpeakerSource()
+
+        source.onCaption = { [weak self, weak recorder] observation in
+            Task { @MainActor in
+                guard let self, let recorder, let confirmed = self.timeline.record(observation) else {
+                    return
+                }
+                // A change to the local user still ends the remote speaker's turn, but
+                // their audio is on the microphone track, so the far side gets no name
+                // until someone over there speaks again.
+                recorder.speakerChanged(to: self.timeline.isLocal(confirmed) ? nil : confirmed)
+            }
+        }
+        source.onRoster = { [weak self] names in
+            Task { @MainActor in self?.timeline.noteRoster(names) }
+        }
+
+        do {
+            try await source.start()
+            speakerSource = source
+        } catch {
+            Log.audio.info("meeting speaker detection unavailable: \(String(describing: error))")
         }
     }
 
@@ -165,6 +204,8 @@ final class MeetingSessionController {
         guard phase.isRecording, let recorder, let sessionID, let startedAt else { return }
         phase = .processing
 
+        speakerSource?.stop()
+        speakerSource = nil
         await capture?.stop()
         capture = nil
         for chunk in recorder.finish() { enqueue(chunk) }
@@ -179,14 +220,15 @@ final class MeetingSessionController {
         pendingUploads = []
         transcriber = nil
 
-        let lines = MeetingTranscript.merge(segments)
+        let userName = settings.resolvedUserDisplayName
+        let lines = MeetingTranscript.merge(segments, userName: userName)
         let transcript = MeetingTranscript.markdown(lines)
         let duration = Date().timeIntervalSince(startedAt)
 
         let summary = await MeetingSummarizer(
             config: settings.cloudTranscriptionConfig,
             model: settings.meetingSummaryModel
-        ).summarize(transcript: transcript)
+        ).summarize(transcript: transcript, userName: userName, roster: timeline.roster)
 
         let record = store.save(
             id: sessionID, startedAt: startedAt, duration: duration,

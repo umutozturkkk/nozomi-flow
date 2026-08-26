@@ -32,6 +32,35 @@ final class MeetingNotesTests: XCTestCase {
         XCTAssertEqual(MeetingSummarizer.validate("\n\n" + notes + "  \n"), notes)
     }
 
+    // MARK: - Who the model is told was in the room
+
+    func testTheRosterNamesEveryoneAndClosesTheGap() {
+        // The exact failure being fixed: given an unidentified speaker and names
+        // inside the speech, a model harvests those names and hands them turns.
+        let instructions = MeetingSummarizer.instructions(userName: "Umut", roster: ["Ahmet", "Ayşe"])
+
+        XCTAssertTrue(instructions.contains("Umut, Ahmet, Ayşe"))
+        XCTAssertTrue(instructions.contains("Nobody else spoke"))
+        XCTAssertTrue(instructions.lowercased().contains("referring to a person"))
+    }
+
+    func testWithNoRosterTheFarSideStaysAnonymous() {
+        // Captions off or an unreadable window. Claiming to know the participants
+        // here would be worse than admitting the transcript only has two sides.
+        let instructions = MeetingSummarizer.instructions(userName: "Umut", roster: [])
+
+        XCTAssertTrue(instructions.contains("\"Them\""))
+        XCTAssertTrue(instructions.contains("\"Umut\""))
+        XCTAssertFalse(instructions.contains("Nobody else spoke"))
+        XCTAssertTrue(instructions.lowercased().contains("do not work out who"))
+    }
+
+    func testWithNoNameAtAllTheOldLabelsSurvive() {
+        let instructions = MeetingSummarizer.instructions()
+        XCTAssertTrue(instructions.contains("\"You\""))
+        XCTAssertTrue(instructions.contains("\"Them\""))
+    }
+
     // MARK: - Endpoint derivation
 
     func testSummaryFollowsWhicheverProviderIsConfigured() {
