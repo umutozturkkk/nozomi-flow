@@ -201,6 +201,8 @@ final class DictationCoordinator {
         // Start the mic now rather than after the recognizer is set up, so nothing
         // said during setup is lost; the handoff holds it until the session attaches.
         handoff.reset()
+        // The recording limit counts from key-down, since the mic is live from here.
+        startMaxTimer()
         if permissions.microphone == .granted {
             guard startCapture() else { return }
         }
@@ -219,6 +221,14 @@ final class DictationCoordinator {
                 guard granted else {
                     self.fail(.micPermissionDenied)
                     self.onNeedsPermissions?()
+                    return false
+                }
+                // The key may have been released while the prompt was up. As in
+                // `StartupRace.keyUpBeatStartup`, stopAndProcess is waiting on this
+                // task, so it must resolve the phase rather than return quietly.
+                guard self.sessionGeneration == gen else { return false }
+                guard self.appState.phase.isRecording else {
+                    self.fail(.tooShort)
                     return false
                 }
                 guard self.startCapture() else { return false }
@@ -254,7 +264,6 @@ final class DictationCoordinator {
                 self.handoff.attach { [weak transcriber = self.transcriber] buffer in
                     transcriber?.acceptBuffer(buffer)
                 }
-                self.startMaxTimer()
                 return true
             } catch {
                 Log.app.error("session start failed: \(String(describing: error))")
@@ -327,12 +336,14 @@ final class DictationCoordinator {
         appState.phase = .processing
         sounds.playStop()
         maxTimer?.invalidate()
+        // Off now, not after startup: audio after key-up is never used, and a slow
+        // startup (model download) would otherwise keep the mic live meanwhile.
+        audio.stop()
 
         Task { [weak self] in
             guard let self else { return }
             let started = await self.startupTask?.value ?? false
             guard self.sessionGeneration == gen else { return } // superseded/cancelled
-            self.audio.stop()
             self.appState.audioLevel = 0
             guard started else { return } // fail() already ran inside startupTask
 

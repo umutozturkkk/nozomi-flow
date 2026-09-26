@@ -7,17 +7,27 @@ import AVFAudio
 ///
 /// `accept` runs on the audio thread, `attach`/`reset` on the main thread.
 final class AudioHandoff: @unchecked Sendable {
+    /// Held audio beyond this is dropped (newest first), so a setup that hangs
+    /// (a model download) can't grow memory without limit. Far longer than any
+    /// normal startup.
+    static let maxHeldSeconds: Double = 30
+
     private let lock = NSLock()
     private var pending: [AVAudioPCMBuffer] = []
+    private var pendingFrames: Double = 0
     private var target: ((AVAudioPCMBuffer) -> Void)?
 
     func accept(_ buffer: AVAudioPCMBuffer) {
         lock.lock(); defer { lock.unlock() }
         if let target {
             target(buffer)
-        } else if let copy = Self.copy(buffer) {
-            pending.append(copy)
+            return
         }
+        guard pendingFrames < Self.maxHeldSeconds * buffer.format.sampleRate,
+              let copy = Self.copy(buffer)
+        else { return }
+        pending.append(copy)
+        pendingFrames += Double(copy.frameLength)
     }
 
     /// Delivers everything held so far, in order, then forwards live. Done under
@@ -26,6 +36,7 @@ final class AudioHandoff: @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         for buffer in pending { target(buffer) }
         pending = []
+        pendingFrames = 0
         self.target = target
     }
 
@@ -33,6 +44,7 @@ final class AudioHandoff: @unchecked Sendable {
     func reset() {
         lock.lock(); defer { lock.unlock() }
         pending = []
+        pendingFrames = 0
         target = nil
     }
 

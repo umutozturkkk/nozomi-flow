@@ -57,6 +57,18 @@ final class AudioHandoffTests: XCTestCase {
         XCTAssertEqual(next, [5])
     }
 
+    func testHeldAudioIsCappedSoASlowStartupCannotGrowMemoryWithoutLimit() {
+        let handoff = AudioHandoff()
+        let second = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 48_000)!
+        second.frameLength = 48_000
+        for _ in 0..<Int(AudioHandoff.maxHeldSeconds) + 10 { handoff.accept(second) }
+
+        var heldFrames = 0
+        handoff.attach { heldFrames += Int($0.frameLength) }
+
+        XCTAssertEqual(heldFrames, Int(AudioHandoff.maxHeldSeconds) * 48_000)
+    }
+
     private func buffer(_ value: Float) -> AVAudioPCMBuffer {
         let b = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16)!
         b.frameLength = 16

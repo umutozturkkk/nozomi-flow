@@ -5,13 +5,20 @@ import ApplicationServices
 @MainActor
 final class PermissionsService {
     private let appState: AppState
+    /// Injectable so coordinator tests can run as if access were granted, without
+    /// touching (or prompting for) the real microphone permission.
+    private let microphoneStatus: () -> AVAuthorizationStatus
 
-    init(appState: AppState) {
+    init(
+        appState: AppState,
+        microphoneStatus: @escaping () -> AVAuthorizationStatus = { AVCaptureDevice.authorizationStatus(for: .audio) }
+    ) {
         self.appState = appState
+        self.microphoneStatus = microphoneStatus
     }
 
     var microphone: PermissionState {
-        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        switch microphoneStatus() {
         case .authorized: return .granted
         case .denied, .restricted: return .denied
         case .notDetermined: return .undetermined
