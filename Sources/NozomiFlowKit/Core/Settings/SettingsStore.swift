@@ -110,6 +110,13 @@ final class SettingsStore {
         didSet { persist(meetingSummaryModel, "meetingSummaryModel") }
     }
 
+    // MARK: - Personal model
+
+    /// Saves cloud-transcribed dictations as training samples. Off by default.
+    var collectTrainingData: Bool = false {
+        didSet { persist(collectTrainingData, "collectTrainingData") }
+    }
+
     var cloudTranscriptionConfig: CloudTranscriptionConfig {
         CloudTranscriptionConfig(
             isEnabled: cloudTranscriptionEnabled,
@@ -183,6 +190,9 @@ final class SettingsStore {
         }
         cloudTranscriptionModel = defaults.string(forKey: "cloudTranscriptionModel") ?? "microsoft/mai-transcribe-1.5"
         cloudTranscriptionKey = KeychainHelper.get(account: "cloud_asr_api_key") ?? ""
+        if defaults.object(forKey: "collectTrainingData") != nil {
+            collectTrainingData = defaults.bool(forKey: "collectTrainingData")
+        }
         meetingSummaryModel = defaults.string(forKey: "meetingSummaryModel") ?? "google/gemini-2.5-flash-lite"
         if defaults.object(forKey: "playSounds") != nil { playSounds = defaults.bool(forKey: "playSounds") }
         if defaults.object(forKey: "showLiveTranscript") != nil { showLiveTranscript = defaults.bool(forKey: "showLiveTranscript") }

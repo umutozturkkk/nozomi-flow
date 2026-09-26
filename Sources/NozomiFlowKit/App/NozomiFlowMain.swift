@@ -69,6 +69,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var onboarding: OnboardingController!
     private var meetingStore: MeetingStore!
     private var meetings: MeetingSessionController!
+    private var trainingStore: TrainingSampleStore!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         settings = SettingsStore()
@@ -85,6 +86,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeys = HotkeyMonitor(settings: settings)
         sounds = SoundPlayer(settings: settings)
 
+        trainingStore = TrainingSampleStore()
+        let store = trainingStore!
+        Task.detached(priority: .utility) { store.removeIncomplete() }
+
         coordinator = DictationCoordinator(
             appState: appState,
             settings: settings,
@@ -97,7 +102,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             history: history,
             permissions: permissions,
             hotkeys: hotkeys,
-            sounds: sounds
+            sounds: sounds,
+            trainingStore: trainingStore
         )
 
         hud = HUDController(appState: appState, settings: settings)

@@ -49,4 +49,17 @@ final class TrainingSampleTests: XCTestCase {
         XCTAssertEqual(sample.label, "selam")
         XCTAssertEqual(sample.durationSeconds, 2, accuracy: 0.001)
     }
+
+    @MainActor
+    func testCollectionSettingIsOffByDefaultAndPersists() throws {
+        let suite = "training-settings-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let first = SettingsStore(defaults: defaults)
+        XCTAssertFalse(first.collectTrainingData)
+        first.collectTrainingData = true
+
+        XCTAssertTrue(SettingsStore(defaults: defaults).collectTrainingData)
+    }
 }

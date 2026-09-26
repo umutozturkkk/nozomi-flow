@@ -37,6 +37,7 @@ final class DictationCoordinator {
     private let history: HistoryStore
     private let permissions: PermissionsService
     private let sounds: SoundPlayer
+    private let trainingStore: TrainingSampleStore
 
     /// Set by AppDelegate to open the onboarding/permissions window.
     var onNeedsPermissions: (() -> Void)?
@@ -68,7 +69,8 @@ final class DictationCoordinator {
         history: HistoryStore,
         permissions: PermissionsService,
         hotkeys: HotkeyServiceProtocol,
-        sounds: SoundPlayer
+        sounds: SoundPlayer,
+        trainingStore: TrainingSampleStore
     ) {
         self.appState = appState
         self.settings = settings
@@ -81,6 +83,7 @@ final class DictationCoordinator {
         self.history = history
         self.permissions = permissions
         self.sounds = sounds
+        self.trainingStore = trainingStore
 
         hotkeys.onDictationKeyDown = { [weak self] in self?.keyDown(mode: .dictation) }
         hotkeys.onDictationKeyUp = { [weak self] in self?.keyUp(mode: .dictation) }
@@ -379,6 +382,7 @@ final class DictationCoordinator {
             raw: raw, final: text, duration: duration, mode: .dictation,
             engine: outcome.engine, corrections: formatted.corrections
         )
+        collectTrainingSample(raw: raw, outcome: outcome)
         succeed(with: text)
     }
 
@@ -442,6 +446,26 @@ final class DictationCoordinator {
             scheduleIdle(after: 1.2)
         } else {
             appState.phase = .idle
+        }
+    }
+
+    /// Hands an eligible dictation to the training store. Runs after insertion and
+    /// off the main actor, so a slow or failing disk never touches the dictation.
+    private func collectTrainingSample(raw: String, outcome: TranscriptionOutcome) {
+        guard TrainingSampleEligibility.accepts(
+            enabled: settings.collectTrainingData, mode: .dictation, outcome: outcome
+        ), let audio = outcome.audio else { return }
+        let sample = TrainingSample.make(
+            rawLabel: raw, audioSampleCount: audio.count,
+            appBundleID: pendingContext?.bundleID, labelSource: settings.cloudTranscriptionModel
+        )
+        let store = trainingStore
+        Task.detached(priority: .utility) {
+            do {
+                try store.save(sample, audio: audio)
+            } catch {
+                Log.app.error("training sample not saved: \(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 
