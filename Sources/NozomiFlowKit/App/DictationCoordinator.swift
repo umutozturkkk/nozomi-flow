@@ -479,7 +479,8 @@ final class DictationCoordinator {
         ), let audio = outcome.audio else { return }
         let sample = TrainingSample.make(
             rawLabel: raw, audioSampleCount: audio.count,
-            appBundleID: pendingContext?.bundleID, labelSource: settings.cloudTranscriptionModel
+            appBundleID: pendingContext?.bundleID, labelSource: settings.cloudTranscriptionModel,
+            localeIdentifier: outcome.localeIdentifier
         )
         let store = trainingStore
         Task.detached(priority: .utility) {

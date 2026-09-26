@@ -9,6 +9,7 @@ struct PersonalModelSection: View {
     let store: TrainingSampleStore
 
     @State private var collectedMinutes = 0
+    @State private var hasData = false
     @State private var confirmingDelete = false
 
     var body: some View {
@@ -19,7 +20,7 @@ struct PersonalModelSection: View {
             Button(L10n.string("training.deleteAll"), role: .destructive) {
                 confirmingDelete = true
             }
-            .disabled(collectedMinutes == 0)
+            .disabled(!hasData)
         } header: {
             Text(L10n.string("training.header"))
         } footer: {
@@ -42,5 +43,6 @@ struct PersonalModelSection: View {
 
     private func refresh() {
         collectedMinutes = Int(store.totalDurationSeconds() / 60)
+        hasData = store.hasAnyData()
     }
 }

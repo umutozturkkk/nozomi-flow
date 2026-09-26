@@ -114,4 +114,41 @@ final class TrainingSampleStoreTests: XCTestCase {
 
         XCTAssertThrowsError(try broken.save(s, audio: audio))
     }
+
+    // MARK: - Anything stored (drives the Delete button)
+
+    func testEmptyStoreHasNoData() {
+        XCTAssertFalse(store.hasAnyData())
+    }
+
+    func testEvenAFewSecondsCountAsData() throws {
+        let (s, audio) = sample(seconds: 1.5)
+        try store.save(s, audio: audio)
+        XCTAssertTrue(store.hasAnyData(), "a privacy delete must be possible before a full minute is collected")
+    }
+
+    func testDebrisAloneStillCountsAsData() throws {
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data([1]).write(to: dir.appendingPathComponent("\(UUID().uuidString).wav"))
+        XCTAssertTrue(store.hasAnyData())
+    }
+
+    func testLocaleRoundTrips() throws {
+        let audio = [Int16](repeating: 1, count: 32_000)
+        let s = TrainingSample.make(rawLabel: "hello", audioSampleCount: audio.count,
+                                    appBundleID: nil, labelSource: "m", localeIdentifier: "en_US")
+        try store.save(s, audio: audio)
+        XCTAssertEqual(store.loadAll().first?.localeIdentifier, "en_US")
+    }
+
+    func testSampleSavedBeforeLocaleExistedStillLoads() throws {
+        let (s, audio) = sample()
+        try store.save(s, audio: audio)
+        let url = dir.appendingPathComponent("\(s.id.uuidString).json")
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        json.removeValue(forKey: "localeIdentifier")
+        try JSONSerialization.data(withJSONObject: json).write(to: url)
+
+        XCTAssertEqual(store.loadAll().map(\.id), [s.id])
+    }
 }

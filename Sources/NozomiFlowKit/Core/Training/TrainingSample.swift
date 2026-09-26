@@ -16,18 +16,24 @@ struct TrainingSample: Codable, Equatable, Identifiable {
     var durationSeconds: Double
     var appBundleID: String?
     var labelSource: String
+    /// Dictation locale (e.g. "tr_TR"); fine-tuning needs the language token. nil
+    /// in samples saved before this field existed.
+    var localeIdentifier: String?
     var rawLabel: String
     var label: String
     var status: Status
 
-    static func make(rawLabel: String, audioSampleCount: Int, appBundleID: String?, labelSource: String) -> TrainingSample {
+    static func make(
+        rawLabel: String, audioSampleCount: Int, appBundleID: String?, labelSource: String,
+        localeIdentifier: String? = nil
+    ) -> TrainingSample {
         TrainingSample(
             id: UUID(),
             // Whole seconds: ISO-8601 in the JSON has no fraction, so a sample read
             // back from disk equals the one that was saved.
             createdAt: Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down)),
             durationSeconds: Double(audioSampleCount) / Double(sampleRate),
-            appBundleID: appBundleID, labelSource: labelSource,
+            appBundleID: appBundleID, labelSource: labelSource, localeIdentifier: localeIdentifier,
             rawLabel: rawLabel, label: rawLabel, status: .unchecked
         )
     }

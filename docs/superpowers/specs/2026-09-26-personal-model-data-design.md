@@ -65,6 +65,7 @@ Per sample, in `~/Library/Application Support/Murmur/Training/`:
   "durationSeconds": 6.2,
   "appBundleID": "com.apple.TextEdit",
   "labelSource": "microsoft/mai-transcribe-1.5",
+  "localeIdentifier": "tr_TR",
   "rawLabel": "cloud raw transcript, before dictionary and AI cleanup",
   "label": "current best label (rawLabel with confirmed corrections applied)",
   "status": "unchecked | agreed | pending | corrected | verified | uncertain",

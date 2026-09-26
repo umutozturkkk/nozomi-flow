@@ -58,6 +58,14 @@ final class TrainingSampleStore: @unchecked Sendable {
         return loadAllLocked()
     }
 
+    /// True when anything at all is on disk, samples or debris: what the Delete
+    /// button needs, since even seconds of someone's voice must be deletable.
+    func hasAnyData() -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        let files = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        return !files.isEmpty
+    }
+
     func totalDurationSeconds() -> Double {
         loadAll().reduce(0) { $0 + $1.durationSeconds }
     }
