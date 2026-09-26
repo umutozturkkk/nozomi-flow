@@ -53,6 +53,8 @@ final class DictationCoordinator {
     private var lastQuickTapAt: Date?
     private var maxTimer: Timer?
     private var idleTimer: Timer?
+    /// Holds mic audio captured before the recognizer session is ready.
+    private let handoff = AudioHandoff()
 
     init(
         appState: AppState,
@@ -175,12 +177,29 @@ final class DictationCoordinator {
             formatter.prepareSession(for: makeFormattingRequest(raw: ""))
         }
 
-        sounds.playStart()
         transcriber.onPartial = { [weak self] text in
             self?.appState.liveTranscript = text
         }
         audio.onLevel = { [weak self] level in
             self?.appState.audioLevel = level
+        }
+        // The start sound is the cue to speak, so it waits until the mic is really
+        // hearing: on a cold device that is up to two seconds after key-down, and
+        // anything said before it was lost.
+        audio.onFirstBuffer = { [weak self] in
+            guard let self, self.sessionGeneration == gen, self.appState.phase.isRecording else { return }
+            if let keyDownAt = self.sessionStart {
+                let ms = Int(Date().timeIntervalSince(keyDownAt) * 1000)
+                Log.app.notice("mic live \(ms, privacy: .public) ms after key down")
+            }
+            self.sounds.playStart()
+        }
+
+        // Start the mic now rather than after the recognizer is set up, so nothing
+        // said during setup is lost; the handoff holds it until the session attaches.
+        handoff.reset()
+        if permissions.microphone == .granted {
+            guard startCapture() else { return }
         }
 
         // Chain onto the previous startup so TranscriptionEngine.beginSession is
@@ -199,6 +218,7 @@ final class DictationCoordinator {
                     self.onNeedsPermissions?()
                     return false
                 }
+                guard self.startCapture() else { return false }
             }
             do {
                 let locale = self.settings.resolvedLocale
@@ -228,10 +248,9 @@ final class DictationCoordinator {
                     self.fail(.tooShort)
                     return false
                 }
-                self.audio.bufferHandler = { [weak transcriber = self.transcriber] buffer, _ in
+                self.handoff.attach { [weak transcriber = self.transcriber] buffer in
                     transcriber?.acceptBuffer(buffer)
                 }
-                try self.audio.start()
                 self.startMaxTimer()
                 return true
             } catch {
@@ -246,6 +265,20 @@ final class DictationCoordinator {
                 }
                 return false
             }
+        }
+    }
+
+    /// Starts the mic feeding the handoff. On failure the session is failed and
+    /// false is returned, so callers just bail out.
+    private func startCapture() -> Bool {
+        audio.bufferHandler = { [handoff] buffer, _ in handoff.accept(buffer) }
+        do {
+            try audio.start()
+            return true
+        } catch {
+            Log.app.error("mic start failed: \(String(describing: error))")
+            fail(.transcriptionFailed(error.localizedDescription))
+            return false
         }
     }
 
@@ -305,6 +338,9 @@ final class DictationCoordinator {
                 // Esc during .processing bumps the generation; never insert then.
                 guard self.sessionGeneration == gen else { return }
                 let raw = outcome.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if DebugAudioRecorder.isEnabled {
+                    Log.app.notice("raw transcript: \(raw, privacy: .public)")
+                }
                 guard !raw.isEmpty else { throw DictationError.noSpeechDetected }
                 let duration = Date().timeIntervalSince(startedAt)
 

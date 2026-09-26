@@ -148,6 +148,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.appState.aiAvailability = await self.formatter.availabilityDescription()
         }
         prepareTranscriber()
+        prewarmMic()
+        // The input device goes cold across sleep; wake it before the first dictation.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.prewarmMic() }
+        }
 
         NotificationCenter.default.addObserver(
             forName: .murmurLocaleChanged, object: nil, queue: .main
@@ -175,6 +182,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if permissions.accessibility && !hotkeys.isRunning {
             try? hotkeys.start()
         }
+    }
+
+    /// A cold input device takes ~2 s to come up, which the first dictation used
+    /// to spend losing words. Skipped without mic permission so it never prompts.
+    private func prewarmMic() {
+        permissions.refresh()
+        guard permissions.microphone == .granted else { return }
+        DispatchQueue.main.async { [weak self] in self?.audio.prewarm() }
     }
 
     private func prepareTranscriber() {

@@ -27,9 +27,16 @@ protocol AudioCaptureServiceProtocol: AnyObject {
     var bufferHandler: ((AVAudioPCMBuffer, AVAudioTime) -> Void)? { get set }
     /// Smoothed 0...1 input level for waveform UI. Always called on the main thread.
     var onLevel: ((Float) -> Void)? { get set }
+    /// Fired once per `start()`, on the main thread, when the first buffer arrives:
+    /// the moment the mic is actually hearing, which on a cold device can be two
+    /// seconds after `start()` returns.
+    var onFirstBuffer: (() -> Void)? { get set }
     var isCapturing: Bool { get }
     func start() throws
     func stop()
+    /// Wakes the input device without capturing, so the next `start()` doesn't pay
+    /// the cold-device cost. No recording happens and no mic indicator is shown.
+    func prewarm()
 }
 
 // MARK: - Transcription
