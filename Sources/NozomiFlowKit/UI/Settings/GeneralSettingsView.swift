@@ -5,6 +5,7 @@ import SwiftUI
 /// General tab: hotkeys, hands-free, language, and top-level behavior toggles.
 struct GeneralSettingsView: View {
     @Bindable var settings: SettingsStore
+    let trainingStore: TrainingSampleStore
 
     var body: some View {
         Form {
@@ -75,6 +76,8 @@ struct GeneralSettingsView: View {
             } header: {
                 Text("Behavior")
             }
+
+            PersonalModelSection(settings: settings, store: trainingStore)
         }
         .formStyle(.grouped)
     }

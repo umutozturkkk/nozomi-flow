@@ -113,7 +113,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             dictionary: dictionary,
             history: history,
             permissions: permissions,
-            meetingStore: meetingStore
+            meetingStore: meetingStore,
+            trainingStore: trainingStore
         )
         onboarding = OnboardingController(
             appState: appState,
