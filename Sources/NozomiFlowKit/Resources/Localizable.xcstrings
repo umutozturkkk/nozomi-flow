@@ -1,0 +1,166 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "common.cancel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vazgeç"
+          }
+        }
+      }
+    },
+    "common.delete": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sil"
+          }
+        }
+      }
+    },
+    "training.deleteAll": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete All Collected Data…"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toplanan Tüm Verileri Sil…"
+          }
+        }
+      }
+    },
+    "training.deleteConfirm.message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All saved recordings and transcripts are removed from this Mac. This can't be undone."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaydedilen tüm sesler ve metinler bu Mac'ten silinir. Bu işlem geri alınamaz."
+          }
+        }
+      }
+    },
+    "training.deleteConfirm.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete all collected data?"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toplanan tüm veriler silinsin mi?"
+          }
+        }
+      }
+    },
+    "training.footer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictations transcribed in the cloud are saved on this Mac with their transcript, to train a model on your voice later. Nothing extra is uploaded."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bulutta çözülen dikteler metinleriyle birlikte bu Mac'e kaydedilir ve ileride sesine özel bir model eğitmek için kullanılır. Buluta ek bir şey gönderilmez."
+          }
+        }
+      }
+    },
+    "training.header": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal model"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kişisel model"
+          }
+        }
+      }
+    },
+    "training.needsCloud": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs cloud transcription: on-device transcripts are not reliable enough to learn from."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bulut transkripsiyonu gerekir: cihaz içi metinler öğrenmek için yeterince güvenilir değil."
+          }
+        }
+      }
+    },
+    "training.progress": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld of %2$lld minutes collected"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld / %2$lld dakika toplandı"
+          }
+        }
+      }
+    },
+    "training.toggle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collect data for a personal model"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kişisel model için veri topla"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
