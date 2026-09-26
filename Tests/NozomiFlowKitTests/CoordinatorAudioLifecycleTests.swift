@@ -14,6 +14,8 @@ final class CoordinatorAudioLifecycleTests: XCTestCase {
     private var audio: FakeAudio!
     private var transcriber: FakeTranscriber!
     private var coordinator: DictationCoordinator!
+    private var hotkeys: FakeHotkeys!
+    private var appState: AppState!
 
     override func setUp() async throws {
         dir = FileManager.default.temporaryDirectory.appendingPathComponent("coordinator-tests-\(UUID().uuidString)")
@@ -21,7 +23,8 @@ final class CoordinatorAudioLifecycleTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         let settings = SettingsStore(defaults: defaults)
         settings.playSounds = false
-        let appState = AppState()
+        appState = AppState()
+        hotkeys = FakeHotkeys()
         audio = FakeAudio()
         transcriber = FakeTranscriber()
         coordinator = DictationCoordinator(
@@ -35,7 +38,7 @@ final class CoordinatorAudioLifecycleTests: XCTestCase {
             dictionary: PersonalDictionaryStore(directory: dir.appendingPathComponent("dict")),
             history: HistoryStore(directory: dir.appendingPathComponent("history")),
             permissions: PermissionsService(appState: appState, microphoneStatus: { .authorized }),
-            hotkeys: FakeHotkeys(),
+            hotkeys: hotkeys,
             sounds: SoundPlayer(settings: settings),
             trainingStore: TrainingSampleStore(directory: dir.appendingPathComponent("training"))
         )
@@ -58,6 +61,21 @@ final class CoordinatorAudioLifecycleTests: XCTestCase {
         coordinator.keyUp(mode: .dictation)
 
         XCTAssertFalse(audio.isCapturing, "the mic must not stay live while a slow startup finishes")
+    }
+}
+
+extension CoordinatorAudioLifecycleTests {
+    /// A cold mic blocks the main thread at key-down, so the key-up is handled
+    /// late; what counts is when the keys were actually pressed and released.
+    func testQuickTapIsJudgedByEventTimesNotByWhenItWasHandled() async throws {
+        hotkeys.lastEventUptime = 100.0
+        coordinator.keyDown(mode: .dictation)
+        try await Task.sleep(for: .milliseconds(450)) // handled late, as after a cold start
+        hotkeys.lastEventUptime = 100.1               // but released 0.1 s after pressing
+        coordinator.keyUp(mode: .dictation)
+
+        XCTAssertEqual(appState.phase, .idle, "a 0.1 s tap is a quick tap and must be discarded")
+        XCTAssertFalse(audio.isCapturing)
     }
 }
 
@@ -130,6 +148,7 @@ private final class FakeHotkeys: HotkeyServiceProtocol {
     var onCommandKeyDown: (() -> Void)?
     var onCommandKeyUp: (() -> Void)?
     var onEscape: (() -> Void)?
+    var lastEventUptime: TimeInterval?
     var isRunning = false
     func start() throws {}
     func stop() {}

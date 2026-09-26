@@ -38,6 +38,9 @@ final class DictationCoordinator {
     private let permissions: PermissionsService
     private let sounds: SoundPlayer
     private let trainingStore: TrainingSampleStore
+    private let hotkeys: HotkeyServiceProtocol
+    /// Uptime of the key-down that started the session (event time when known).
+    private var keyDownUptime: TimeInterval = 0
 
     /// Set by AppDelegate to open the onboarding/permissions window.
     var onNeedsPermissions: (() -> Void)?
@@ -51,7 +54,7 @@ final class DictationCoordinator {
     /// tasks from a superseded session can detect they're stale and bail out
     /// (e.g. Esc during .processing must never reach insertion).
     private var sessionGeneration = 0
-    private var lastQuickTapAt: Date?
+    private var lastQuickTapUptime: TimeInterval?
     private var maxTimer: Timer?
     private var idleTimer: Timer?
     /// Holds mic audio captured before the recognizer session is ready.
@@ -84,6 +87,7 @@ final class DictationCoordinator {
         self.permissions = permissions
         self.sounds = sounds
         self.trainingStore = trainingStore
+        self.hotkeys = hotkeys
 
         hotkeys.onDictationKeyDown = { [weak self] in self?.keyDown(mode: .dictation) }
         hotkeys.onDictationKeyUp = { [weak self] in self?.keyUp(mode: .dictation) }
@@ -108,23 +112,23 @@ final class DictationCoordinator {
         guard case .recording(let startedAt, let handsFree) = appState.phase, mode == sessionMode else { return }
         if handsFree { return } // hands-free sessions ignore key-up; stopped by tap/esc/timeout
 
-        let duration = Date().timeIntervalSince(startedAt)
+        let now = eventUptime()
+        let duration = now - keyDownUptime
         if duration < settings.minRecordingSeconds {
             // Quick tap: possibly the second tap of a double-tap -> hands-free lock.
-            let now = Date()
             if settings.handsFreeEnabled,
-               let last = lastQuickTapAt,
-               now.timeIntervalSince(last) < settings.doubleTapWindow {
-                lastQuickTapAt = nil
+               let last = lastQuickTapUptime,
+               now - last < settings.doubleTapWindow {
+                lastQuickTapUptime = nil
                 appState.phase = .recording(startedAt: startedAt, handsFree: true)
                 Log.app.info("hands-free lock engaged")
                 return
             }
-            lastQuickTapAt = now
+            lastQuickTapUptime = now
             cancelSession(reason: nil) // silent discard
             return
         }
-        lastQuickTapAt = nil
+        lastQuickTapUptime = nil
         stopAndProcess()
     }
 
@@ -161,6 +165,7 @@ final class DictationCoordinator {
         let gen = sessionGeneration
         sessionMode = mode
         sessionStart = Date()
+        keyDownUptime = eventUptime()
         capturedSelection = nil
         appState.sessionMode = mode
         appState.liveTranscript = ""
@@ -278,6 +283,12 @@ final class DictationCoordinator {
                 return false
             }
         }
+    }
+
+    /// When the current key event happened: its own timestamp during a hotkey
+    /// callback, otherwise now (menu-triggered test sessions).
+    private func eventUptime() -> TimeInterval {
+        hotkeys.lastEventUptime ?? ProcessInfo.processInfo.systemUptime
     }
 
     /// Starts the mic feeding the handoff. On failure the session is failed and

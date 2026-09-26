@@ -15,6 +15,10 @@ protocol HotkeyServiceProtocol: AnyObject {
     var onCommandKeyUp: (() -> Void)? { get set }
     /// Fired on Escape keydown; coordinator ignores it unless a session is active.
     var onEscape: (() -> Void)? { get set }
+    /// Uptime seconds at which the key event being dispatched was generated; set
+    /// only while a callback runs, nil otherwise. Hold lengths are measured with
+    /// it because the main thread can be blocked before a key-up gets handled.
+    var lastEventUptime: TimeInterval? { get }
     var isRunning: Bool { get }
     func start() throws
     func stop()
