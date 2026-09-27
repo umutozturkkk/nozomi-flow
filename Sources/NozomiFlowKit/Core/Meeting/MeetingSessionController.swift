@@ -36,22 +36,22 @@ enum MeetingFailure: Equatable {
     var title: String {
         switch self {
         case .cloudTranscriptionOff, .screenRecordingDenied, .couldNotStart:
-            return "Meeting not started"
+            return L10n.string("alert.meeting.notStarted.title")
         case .couldNotSaveNotes:
-            return "Meeting notes not saved"
+            return L10n.string("alert.meeting.notesNotSaved.title")
         }
     }
 
     var message: String {
         switch self {
         case .cloudTranscriptionOff:
-            return "Meetings are transcribed in the cloud. Turn on cloud transcription and add your API key in Settings."
+            return L10n.string("alert.meeting.cloudOff.message")
         case .screenRecordingDenied:
-            return "Nozomi Flow needs Screen Recording permission to hear the other side of the call. No screen images are captured or kept. Quit and reopen the app after granting it."
+            return L10n.string("alert.meeting.screenRecordingDenied.message")
         case .couldNotStart:
-            return "The recording could not be started. Check that another app is not already capturing audio, then try again."
+            return L10n.string("alert.meeting.couldNotStart.message")
         case .couldNotSaveNotes:
-            return "The meeting was recorded but its notes could not be written to disk."
+            return L10n.string("alert.meeting.couldNotSaveNotes.message")
         }
     }
 }

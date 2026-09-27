@@ -40,7 +40,7 @@ struct OnboardingBottomBar: View {
         HStack(spacing: 12) {
             if showBack {
                 Button(action: onBack) {
-                    Label("Back", systemImage: "chevron.left")
+                    Label(L10n.string("common.back"), systemImage: "chevron.left")
                         .labelStyle(.titleAndIcon)
                         .font(.callout.weight(.medium))
                 }

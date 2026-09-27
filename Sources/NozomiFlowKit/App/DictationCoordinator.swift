@@ -314,9 +314,9 @@ final class DictationCoordinator {
         }
         if case .modelUnavailable = dictationError {
             if let progress = downloadProgress {
-                return .modelUnavailable(String(format: "downloading %.0f%%", progress * 100))
+                return .modelUnavailable(L10n.format("error.model.downloading", Int((progress * 100).rounded())))
             }
-            return .modelUnavailable("preparing — try again shortly")
+            return .modelUnavailable(L10n.string("error.model.preparing"))
         }
         return dictationError
     }

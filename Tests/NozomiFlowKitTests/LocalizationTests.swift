@@ -14,12 +14,38 @@ final class LocalizationTests: XCTestCase {
         XCTAssertEqual(L10n.string("no.such.key", localization: "tr"), "no.such.key")
     }
 
-    func testEveryKeyHasEnglishAndTurkish() throws {
-        let catalog = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-            .appendingPathComponent("Sources/NozomiFlowKit/Resources/Localizable.xcstrings")
+    private static let repoRoot = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+
+    private func catalogStrings() throws -> [String: [String: Any]] {
+        let catalog = Self.repoRoot.appendingPathComponent("Sources/NozomiFlowKit/Resources/Localizable.xcstrings")
         let json = try JSONSerialization.jsonObject(with: Data(contentsOf: catalog)) as? [String: Any]
-        let strings = try XCTUnwrap(json?["strings"] as? [String: [String: Any]])
+        return try XCTUnwrap(json?["strings"] as? [String: [String: Any]])
+    }
+
+    /// A key typed in code but missing from the catalog shows up as the raw key,
+    /// and nothing else would catch the typo.
+    func testEveryKeyUsedInCodeExistsInTheCatalog() throws {
+        let strings = try catalogStrings()
+        let pattern = try NSRegularExpression(pattern: #"L10n\.(?:string|format)\(\s*"([^"]+)""#)
+        let sources = Self.repoRoot.appendingPathComponent("Sources")
+        let files = FileManager.default.enumerator(at: sources, includingPropertiesForKeys: nil)!
+            .compactMap { $0 as? URL }
+            .filter { $0.pathExtension == "swift" }
+        var used = 0
+        for file in files {
+            let text = try String(contentsOf: file, encoding: .utf8)
+            for match in pattern.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
+                let key = String(text[Range(match.range(at: 1), in: text)!])
+                used += 1
+                XCTAssertNotNil(strings[key], "\(file.lastPathComponent) uses missing key \(key)")
+            }
+        }
+        XCTAssertGreaterThan(used, 0)
+    }
+
+    func testEveryKeyHasEnglishAndTurkish() throws {
+        let strings = try catalogStrings()
         XCTAssertFalse(strings.isEmpty)
         for (key, entry) in strings {
             let localizations = entry["localizations"] as? [String: Any] ?? [:]

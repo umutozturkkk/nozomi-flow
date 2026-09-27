@@ -10,12 +10,12 @@ struct GeneralSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Dictation key", selection: $settings.dictationKey) {
+                Picker(L10n.string("settings.general.dictationKey"), selection: $settings.dictationKey) {
                     ForEach(HotkeyChoice.allCases, id: \.self) { choice in
                         Text(choice.displayName).tag(choice)
                     }
                 }
-                Picker("Command key", selection: $settings.commandKey) {
+                Picker(L10n.string("settings.general.commandKey"), selection: $settings.commandKey) {
                     ForEach(HotkeyChoice.allCases, id: \.self) { choice in
                         Text(choice.displayName).tag(choice)
                     }
@@ -25,77 +25,66 @@ struct GeneralSettingsView: View {
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             } header: {
-                Text("Hotkeys")
+                Text(L10n.string("settings.general.hotkeys"))
             }
             .animation(.spring(response: 0.35, dampingFraction: 0.8), value: keysCollide)
 
             Section {
-                Toggle("Hands-free mode", isOn: $settings.handsFreeEnabled)
+                Toggle(L10n.string("settings.general.handsFree"), isOn: $settings.handsFreeEnabled)
             } footer: {
-                Text("Double-tap the dictation key to lock recording; tap again to stop.")
+                Text(L10n.string("settings.general.handsFreeFooter"))
             }
 
             Section {
-                Picker("Language", selection: $settings.localeIdentifier) {
-                    Text("System language").tag(nil as String?)
+                Picker(L10n.string("settings.general.language"), selection: $settings.localeIdentifier) {
+                    Text(L10n.string("settings.general.systemLanguage")).tag(nil as String?)
                     ForEach(LocaleCatalog.curated) { option in
                         Text(option.label).tag(option.identifier as String?)
                     }
                 }
             } footer: {
-                Text("On-device engine is chosen automatically per language.")
+                Text(L10n.string("settings.general.languageFooter"))
             }
 
             Section {
-                Toggle("Cloud transcription", isOn: $settings.cloudTranscriptionEnabled)
+                Toggle(L10n.string("settings.general.cloudTranscription"), isOn: $settings.cloudTranscriptionEnabled)
                 if settings.cloudTranscriptionEnabled {
-                    SecureField("API key", text: $settings.cloudTranscriptionKey)
-                    TextField("Model", text: $settings.cloudTranscriptionModel)
+                    SecureField(L10n.string("settings.apiKey"), text: $settings.cloudTranscriptionKey)
+                    TextField(L10n.string("settings.model"), text: $settings.cloudTranscriptionModel)
                 }
             } header: {
-                Text("Transcription")
+                Text(L10n.string("settings.general.transcription"))
             } footer: {
                 if settings.cloudTranscriptionEnabled {
-                    Text("""
-                        Recorded audio is uploaded when you release the key. \
-                        Much more accurate on Turkish mixed with English terms, \
-                        but there is no live transcript while you speak, and Nozomi Flow \
-                        falls back to the on-device engine if the request fails.
-                        """)
+                    Text(L10n.string("settings.general.cloudFooter"))
                 } else {
-                    Text("Everything stays on this Mac.")
+                    Text(L10n.string("settings.general.localFooter"))
                 }
             }
             .animation(.spring(response: 0.3, dampingFraction: 0.85), value: settings.cloudTranscriptionEnabled)
 
             Section {
-                Toggle("Identify who is speaking", isOn: $settings.meetingSpeakerDetectionEnabled)
-                TextField("Your name", text: $settings.userDisplayName, prompt: Text(NSFullUserName()))
+                Toggle(L10n.string("settings.general.identifySpeakers"), isOn: $settings.meetingSpeakerDetectionEnabled)
+                TextField(L10n.string("settings.general.yourName"), text: $settings.userDisplayName, prompt: Text(NSFullUserName()))
             } header: {
-                Text("Meetings")
+                Text(L10n.string("settings.general.meetings"))
             } footer: {
                 if settings.meetingSpeakerDetectionEnabled {
-                    Text("""
-                        Nozomi Flow reads the meeting window's captions and participant \
-                        list so notes can say who said what. This happens on this Mac, \
-                        and nothing from your screen is saved or sent anywhere. \
-                        Turn captions on in the meeting for this to work, and use the \
-                        name you appear under there so your own turns are not counted twice.
-                        """)
+                    Text(L10n.string("settings.general.speakersFooter"))
                 } else {
-                    Text("Notes will label the two sides of the call as You and Them.")
+                    Text(L10n.string("settings.general.speakersOffFooter"))
                 }
             }
             .animation(.spring(response: 0.3, dampingFraction: 0.85),
                        value: settings.meetingSpeakerDetectionEnabled)
 
             Section {
-                Toggle("Play sounds", isOn: $settings.playSounds)
-                Toggle("Show live transcript in HUD", isOn: $settings.showLiveTranscript)
-                Toggle("Keep history", isOn: $settings.historyEnabled)
-                Toggle("Launch at login", isOn: $settings.launchAtLogin)
+                Toggle(L10n.string("settings.general.playSounds"), isOn: $settings.playSounds)
+                Toggle(L10n.string("settings.general.showLiveTranscript"), isOn: $settings.showLiveTranscript)
+                Toggle(L10n.string("settings.general.keepHistory"), isOn: $settings.historyEnabled)
+                Toggle(L10n.string("settings.general.launchAtLogin"), isOn: $settings.launchAtLogin)
             } header: {
-                Text("Behavior")
+                Text(L10n.string("settings.general.behavior"))
             }
 
             PersonalModelSection(settings: settings, store: trainingStore)
@@ -108,7 +97,7 @@ struct GeneralSettingsView: View {
     }
 
     private var collisionWarning: some View {
-        Label("Both actions share a key — dictation wins", systemImage: "exclamationmark.triangle.fill")
+        Label(L10n.string("settings.general.keyCollision"), systemImage: "exclamationmark.triangle.fill")
             .font(.callout)
             .foregroundStyle(.orange)
     }

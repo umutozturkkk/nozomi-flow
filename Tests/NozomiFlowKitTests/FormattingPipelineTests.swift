@@ -65,7 +65,7 @@ final class FormattingPipelineTests: XCTestCase {
             )
             XCTFail("Expected DictationError.modelUnavailable to be thrown")
         } catch DictationError.modelUnavailable(let message) {
-            XCTAssertEqual(message, "Enable Apple Intelligence or add an OpenAI key in Settings")
+            XCTAssertEqual(message, L10n.string("ai.enableHint"))
         } catch {
             XCTFail("Unexpected error: \(error)")
         }

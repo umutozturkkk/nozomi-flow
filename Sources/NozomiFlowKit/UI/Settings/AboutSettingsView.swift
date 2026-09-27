@@ -16,31 +16,31 @@ struct AboutSettingsView: View {
             Form {
                 Section {
                     statusRow(
-                        title: "Microphone",
+                        title: L10n.string("settings.about.microphone"),
                         isGood: appState.micPermission == .granted,
                         detail: microphoneDetail,
                         action: permissions.openMicrophoneSettings
                     )
                     statusRow(
-                        title: "Accessibility",
+                        title: L10n.string("settings.about.accessibility"),
                         isGood: appState.axTrusted,
-                        detail: appState.axTrusted ? "Granted" : "Not granted",
+                        detail: L10n.string(appState.axTrusted ? "settings.about.granted" : "settings.about.notGranted"),
                         action: permissions.openAccessibilitySettings
                     )
-                    LabeledContent("Speech engine", value: appState.currentEngine.displayName)
-                    LabeledContent("Apple Intelligence", value: appState.aiAvailability.isEmpty ? "Checking…" : appState.aiAvailability)
+                    LabeledContent(L10n.string("settings.about.speechEngine"), value: appState.currentEngine.displayName)
+                    LabeledContent("Apple Intelligence", value: appState.aiAvailability.isEmpty ? L10n.string("settings.checking") : appState.aiAvailability)
                     if let progress = appState.modelDownloadProgress {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Downloading speech model…")
+                            Text(L10n.string("settings.about.downloadingModel"))
                                 .font(.callout)
                             ProgressView(value: progress)
                         }
                         .padding(.vertical, 2)
                     }
                 } header: {
-                    Text("Status")
+                    Text(L10n.string("settings.about.status"))
                 } footer: {
-                    Text("Nozomi Flow listens only while you hold the key. Speech is transcribed on this Mac; nothing leaves your machine unless you choose a cloud engine.")
+                    Text(L10n.string("settings.about.footer"))
                 }
             }
             .formStyle(.grouped)
@@ -59,7 +59,7 @@ struct AboutSettingsView: View {
             Text("1.0.0")
                 .font(.callout)
                 .foregroundStyle(.secondary)
-            Text("Don't type. Just murmur.")
+            Text(L10n.string("settings.about.tagline"))
                 .font(.callout)
                 .italic()
                 .foregroundStyle(.secondary)
@@ -69,9 +69,9 @@ struct AboutSettingsView: View {
 
     private var microphoneDetail: String {
         switch appState.micPermission {
-        case .granted: return "Granted"
-        case .denied: return "Denied"
-        case .undetermined: return "Not requested"
+        case .granted: return L10n.string("settings.about.granted")
+        case .denied: return L10n.string("settings.about.denied")
+        case .undetermined: return L10n.string("settings.about.notRequested")
         }
     }
 
@@ -82,7 +82,7 @@ struct AboutSettingsView: View {
             Spacer()
             Text(detail)
                 .foregroundStyle(.secondary)
-            Button("Open Settings", action: action)
+            Button(L10n.string("settings.about.openSettings"), action: action)
                 .controlSize(.small)
         }
     }

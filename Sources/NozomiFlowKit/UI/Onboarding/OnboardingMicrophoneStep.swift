@@ -15,11 +15,11 @@ struct OnboardingMicrophoneStep: View {
                 OnboardingStepIcon(systemName: "mic.fill")
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Microphone access")
+                    Text(L10n.string("onboarding.mic.title"))
                         .font(.system(size: 24, weight: .bold, design: .rounded))
-                    Text("Nozomi Flow listens only while you hold the key.")
+                    Text(L10n.string("onboarding.mic.body"))
                         .font(.body)
-                    Text("No always-on recording, no cloud upload — audio stays on this Mac.")
+                    Text(L10n.string("onboarding.mic.note"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -43,22 +43,22 @@ struct OnboardingMicrophoneStep: View {
         case .undetermined:
             OnboardingStatusChip(
                 icon: "mic.slash",
-                title: "Not granted yet",
-                subtitle: "We'll ask once you continue.",
+                title: L10n.string("onboarding.mic.notGranted"),
+                subtitle: L10n.string("onboarding.mic.notGrantedHint"),
                 style: .neutral
             )
         case .granted:
             OnboardingStatusChip(
                 icon: "checkmark.seal.fill",
-                title: "You're all set",
+                title: L10n.string("onboarding.mic.granted"),
                 style: .success,
                 bounce: true
             )
         case .denied:
             OnboardingStatusChip(
                 icon: "exclamationmark.triangle.fill",
-                title: "Microphone access is off",
-                subtitle: "Turn it on in System Settings, then check again.",
+                title: L10n.string("onboarding.mic.denied"),
+                subtitle: L10n.string("onboarding.mic.deniedHint"),
                 style: .warning
             )
         }
@@ -67,14 +67,14 @@ struct OnboardingMicrophoneStep: View {
     private var primarySpec: OnboardingButtonSpec? {
         switch appState.micPermission {
         case .undetermined:
-            return OnboardingButtonSpec(title: "Allow Microphone", systemImage: "mic.fill") {
+            return OnboardingButtonSpec(title: L10n.string("onboarding.mic.allow"), systemImage: "mic.fill") {
                 Task {
                     _ = await permissions.requestMicrophone()
                     permissions.refresh()
                 }
             }
         case .denied:
-            return OnboardingButtonSpec(title: "Open System Settings", systemImage: "gearshape.2") {
+            return OnboardingButtonSpec(title: L10n.string("common.openSettings"), systemImage: "gearshape.2") {
                 permissions.openMicrophoneSettings()
             }
         case .granted:
@@ -84,7 +84,7 @@ struct OnboardingMicrophoneStep: View {
 
     private var secondarySpec: OnboardingButtonSpec? {
         guard appState.micPermission == .denied else { return nil }
-        return OnboardingButtonSpec(title: "Check Again") {
+        return OnboardingButtonSpec(title: L10n.string("onboarding.mic.checkAgain")) {
             permissions.refresh()
         }
     }

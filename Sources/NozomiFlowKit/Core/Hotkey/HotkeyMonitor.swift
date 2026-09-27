@@ -180,9 +180,9 @@ enum HotkeyMonitorError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .accessibilityNotTrusted:
-            return "Nozomi Flow needs Accessibility permission to listen for the dictation hotkey. Grant it in System Settings > Privacy & Security > Accessibility, then try again."
+            return L10n.string("error.hotkey.accessibility")
         case .tapCreationFailed:
-            return "Failed to install the global hotkey listener (CGEventTap could not be created)."
+            return L10n.string("error.hotkey.tapFailed")
         }
     }
 }

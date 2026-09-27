@@ -200,7 +200,7 @@ final class TranscriptionEngine: TranscriptionServiceProtocol, CloudConfigurable
         let session: any TranscriptionBackendSession
         if await engineKind(for: locale) == .cloud {
             guard let cloud = CloudTranscriptionSession(config: currentCloudConfig, locale: locale) else {
-                throw DictationError.modelUnavailable("cloud")
+                throw DictationError.modelUnavailable(L10n.string("engine.cloud"))
             }
             session = cloud
         } else {

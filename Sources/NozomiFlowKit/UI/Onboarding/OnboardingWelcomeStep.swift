@@ -10,7 +10,7 @@ struct OnboardingWelcomeStep: View {
         OnboardingStepScaffold(
             showBack: false,
             onBack: {},
-            primary: OnboardingButtonSpec(title: "Get Started", systemImage: "arrow.right", action: onNext)
+            primary: OnboardingButtonSpec(title: L10n.string("onboarding.welcome.getStarted"), systemImage: "arrow.right", action: onNext)
         ) {
             VStack(spacing: 22) {
                 Spacer(minLength: 4)
@@ -22,20 +22,20 @@ struct OnboardingWelcomeStep: View {
                     .shadow(color: .black.opacity(0.18), radius: 14, y: 8)
 
                 VStack(spacing: 8) {
-                    Text("Nozomi Flow")
+                    Text(verbatim: "Nozomi Flow")
                         .font(.system(size: 40, weight: .bold, design: .rounded))
-                    Text("Don't type. Just murmur.")
+                    Text(L10n.string("onboarding.welcome.tagline"))
                         .font(.title3)
                         .foregroundStyle(.secondary)
-                    Text("Takes about a minute to set up.")
+                    Text(L10n.string("onboarding.welcome.setupTime"))
                         .font(.callout)
                         .foregroundStyle(.tertiary)
                 }
 
                 VStack(alignment: .leading, spacing: 16) {
-                    WelcomeBullet(icon: "waveform", text: "Speak into any app", delay: 0.22)
-                    WelcomeBullet(icon: "sparkles", text: "AI cleans it up", delay: 0.36)
-                    WelcomeBullet(icon: "lock.shield", text: "Everything stays on this Mac", delay: 0.50)
+                    WelcomeBullet(icon: "waveform", text: L10n.string("onboarding.welcome.bullet.speak"), delay: 0.22)
+                    WelcomeBullet(icon: "sparkles", text: L10n.string("onboarding.welcome.bullet.ai"), delay: 0.36)
+                    WelcomeBullet(icon: "lock.shield", text: L10n.string("onboarding.welcome.bullet.private"), delay: 0.50)
                 }
                 .padding(.horizontal, 36)
 

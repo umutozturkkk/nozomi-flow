@@ -69,7 +69,7 @@ final class FormatterPipeline: FormattingServiceProtocol {
         openAIModel: String
     ) async throws -> String {
         guard let engine = resolveEngine(llm: llm, openAIKey: openAIKey) else {
-            throw DictationError.modelUnavailable("Enable Apple Intelligence or add an OpenAI key in Settings")
+            throw DictationError.modelUnavailable(L10n.string("ai.enableHint"))
         }
 
         let instructions: String

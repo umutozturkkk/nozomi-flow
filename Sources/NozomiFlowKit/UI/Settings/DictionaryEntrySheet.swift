@@ -29,26 +29,26 @@ struct DictionaryEntrySheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(existing == nil ? "Add Word" : "Edit Word")
+            Text(L10n.string(existing == nil ? "settings.dictionary.addWord" : "settings.dictionary.editWord"))
                 .font(.title3.weight(.semibold))
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
                 .padding(.bottom, 4)
 
             Form {
-                TextField("Phrase", text: $phrase)
+                TextField(L10n.string("settings.dictionary.phrase"), text: $phrase)
                     .focused($phraseFocused)
-                TextField("Variants", text: $variantsText, prompt: Text("misheard forms, comma-separated"))
-                Toggle("Enabled", isOn: $isEnabled)
+                TextField(L10n.string("settings.dictionary.variants"), text: $variantsText, prompt: Text(L10n.string("settings.dictionary.variantsPrompt")))
+                Toggle(L10n.string("settings.dictionary.enabled"), isOn: $isEnabled)
             }
             .formStyle(.grouped)
             .frame(height: 180)
 
             HStack {
                 Spacer()
-                Button("Cancel") { dismiss() }
+                Button(L10n.string("common.cancel")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("Save") { save() }
+                Button(L10n.string("common.save")) { save() }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
                     .disabled(!isValid)

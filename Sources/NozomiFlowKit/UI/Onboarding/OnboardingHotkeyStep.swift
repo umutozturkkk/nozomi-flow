@@ -12,15 +12,15 @@ struct OnboardingHotkeyStep: View {
         OnboardingStepScaffold(
             showBack: true,
             onBack: onBack,
-            primary: OnboardingButtonSpec(title: "Continue", systemImage: "arrow.right", action: onNext)
+            primary: OnboardingButtonSpec(title: L10n.string("common.continue"), systemImage: "arrow.right", action: onNext)
         ) {
             VStack(alignment: .leading, spacing: 20) {
                 OnboardingStepIcon(systemName: "keyboard")
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Your hotkey")
+                    Text(L10n.string("onboarding.hotkey.title"))
                         .font(.system(size: 24, weight: .bold, design: .rounded))
-                    Text("Hold to talk · release to insert · double-tap to lock")
+                    Text(L10n.string("onboarding.hotkey.subtitle"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -33,7 +33,7 @@ struct OnboardingHotkeyStep: View {
                 .padding(.vertical, 4)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("CHANGE KEY")
+                    Text(L10n.string("onboarding.hotkey.changeKey"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .kerning(0.6)
@@ -64,10 +64,10 @@ private struct FnKeyCallout: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 10) {
-                Text("macOS also uses the 🌐 key. Set 'Press 🌐 key' to 'Do Nothing' in Keyboard settings to avoid the emoji picker popping up.")
+                Text(L10n.string("onboarding.hotkey.fnWarning"))
                     .font(.callout)
                     .fixedSize(horizontal: false, vertical: true)
-                Button("Open Keyboard Settings", action: openKeyboardSettings)
+                Button(L10n.string("onboarding.hotkey.openKeyboardSettings"), action: openKeyboardSettings)
                     .buttonStyle(.bordered)
             }
             Spacer(minLength: 0)

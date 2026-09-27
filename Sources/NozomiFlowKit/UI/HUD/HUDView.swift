@@ -94,7 +94,7 @@ private struct HUDPill: View {
             )
             .transition(Self.swapTransition)
         case .processing:
-            ThinkingRow(label: isCommand ? "Working on it…" : "Polishing…")
+            ThinkingRow(label: L10n.string(isCommand ? "hud.workingOnIt" : "hud.polishing"))
                 .transition(Self.swapTransition)
         case .inserting:
             InsertingRow()
@@ -321,7 +321,7 @@ private struct InsertingRow: View {
             Image(systemName: "arrow.down.circle.fill")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.secondary)
-            Text("Inserting…")
+            Text(L10n.string("hud.inserting"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.secondary)
         }
@@ -340,7 +340,7 @@ private struct SuccessRow: View {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.green.gradient)
                 .symbolEffect(.bounce, options: .nonRepeating, value: appeared)
-            Text("\(wordCount) \(wordCount == 1 ? "word" : "words")")
+            Text(L10n.format(wordCount == 1 ? "hud.words.one" : "hud.words.other", wordCount))
                 .font(.system(size: 13, weight: .semibold))
                 .monospacedDigit()
                 .contentTransition(.numericText())

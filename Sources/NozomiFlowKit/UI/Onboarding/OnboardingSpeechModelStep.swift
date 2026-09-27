@@ -24,7 +24,7 @@ struct OnboardingSpeechModelStep: View {
                 OnboardingStepIcon(systemName: "brain.head.profile")
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Speech model")
+                    Text(L10n.string("onboarding.model.title"))
                         .font(.system(size: 24, weight: .bold, design: .rounded))
                     Text(engine.displayName)
                         .font(.body.weight(.semibold))
@@ -35,7 +35,7 @@ struct OnboardingSpeechModelStep: View {
 
                 statusArea
 
-                Text("You can change languages later in Settings.")
+                Text(L10n.string("onboarding.model.changeLater"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -52,42 +52,42 @@ struct OnboardingSpeechModelStep: View {
         if let progress = appState.modelDownloadProgress {
             VStack(alignment: .leading, spacing: 8) {
                 ProgressView(value: progress) {
-                    Text("Downloading speech model…").font(.callout)
+                    Text(L10n.string("onboarding.model.downloading")).font(.callout)
                 }
-                Text("\(Int(progress * 100))%")
+                Text(L10n.format("onboarding.model.percent", Int(progress * 100)))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             .padding(14)
             .glassEffect(.regular, in: .rect(cornerRadius: 14))
         } else if isReady {
-            OnboardingStatusChip(icon: "checkmark.seal.fill", title: "Ready to go", style: .success, bounce: true)
+            OnboardingStatusChip(icon: "checkmark.seal.fill", title: L10n.string("onboarding.model.ready"), style: .success, bounce: true)
         } else if engine == .none {
             OnboardingStatusChip(
                 icon: "exclamationmark.triangle.fill",
-                title: "No engine for this language",
-                subtitle: "Pick another language in Settings once you're set up.",
+                title: L10n.string("onboarding.model.noEngine"),
+                subtitle: L10n.string("onboarding.model.noEngineHint"),
                 style: .warning
             )
         } else if prepareFailed {
             OnboardingStatusChip(
                 icon: "exclamationmark.triangle.fill",
-                title: "Couldn't prepare the model",
-                subtitle: "Check your connection and try again.",
+                title: L10n.string("onboarding.model.failed"),
+                subtitle: L10n.string("onboarding.model.failedHint"),
                 style: .warning
             )
         } else if isPreparing {
-            OnboardingStatusChip(icon: "hourglass", title: "Preparing…", style: .neutral)
+            OnboardingStatusChip(icon: "hourglass", title: L10n.string("onboarding.model.preparing"), style: .neutral)
         }
     }
 
     private var qualityNote: String {
         switch engine {
-        case .cloud: return "Cloud transcription. Nothing to download."
-        case .speechAnalyzer: return "Apple's newest on-device model."
-        case .dictation: return "On-device dictation model."
-        case .legacySF: return "Compatibility engine."
-        case .none: return "No engine for this language - pick another in Settings."
+        case .cloud: return L10n.string("onboarding.model.note.cloud")
+        case .speechAnalyzer: return L10n.string("onboarding.model.note.speechAnalyzer")
+        case .dictation: return L10n.string("onboarding.model.note.dictation")
+        case .legacySF: return L10n.string("onboarding.model.note.legacy")
+        case .none: return L10n.string("onboarding.model.note.none")
         }
     }
 
@@ -106,20 +106,20 @@ struct OnboardingSpeechModelStep: View {
 
     private var primarySpec: OnboardingButtonSpec {
         if appState.modelDownloadProgress != nil {
-            return OnboardingButtonSpec(title: "Preparing…", isEnabled: false, action: {})
+            return OnboardingButtonSpec(title: L10n.string("onboarding.model.preparing"), isEnabled: false, action: {})
         }
         if isReady || engine == .none {
             return OnboardingButtonSpec(
-                title: engine == .none ? "Continue Anyway" : "Continue",
+                title: L10n.string(engine == .none ? "onboarding.model.continueAnyway" : "common.continue"),
                 systemImage: "arrow.right",
                 action: onNext
             )
         }
         if isPreparing {
-            return OnboardingButtonSpec(title: "Preparing…", isEnabled: false, action: {})
+            return OnboardingButtonSpec(title: L10n.string("onboarding.model.preparing"), isEnabled: false, action: {})
         }
         return OnboardingButtonSpec(
-            title: prepareFailed ? "Try Again" : "Download / Prepare",
+            title: L10n.string(prepareFailed ? "onboarding.model.tryAgain" : "onboarding.model.prepare"),
             systemImage: "arrow.down.circle.fill",
             action: { Task { await runPrepare() } }
         )
