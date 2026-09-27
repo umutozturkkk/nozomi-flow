@@ -13,6 +13,7 @@ import Foundation
 final class HotkeyMonitor: HotkeyServiceProtocol {
     var onDictationKeyDown: (() -> Void)?
     var onDictationKeyUp: (() -> Void)?
+    private(set) var lastEventUptime: TimeInterval?
     var onCommandKeyDown: (() -> Void)?
     var onCommandKeyUp: (() -> Void)?
     var onEscape: (() -> Void)?
@@ -125,6 +126,8 @@ final class HotkeyMonitor: HotkeyServiceProtocol {
         }
 
         let keyCode = CGKeyCode(truncatingIfNeeded: event.getIntegerValueField(.keyboardEventKeycode))
+        lastEventUptime = EventUptime.seconds(fromEventTimestamp: event.timestamp)
+        defer { lastEventUptime = nil }
         switch type {
         case .flagsChanged:
             handleFlagsChanged(keyCode: keyCode, rawFlags: event.flags.rawValue)

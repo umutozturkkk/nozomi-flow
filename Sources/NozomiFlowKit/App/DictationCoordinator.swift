@@ -37,6 +37,10 @@ final class DictationCoordinator {
     private let history: HistoryStore
     private let permissions: PermissionsService
     private let sounds: SoundPlayer
+    private let trainingStore: TrainingSampleStore
+    private let hotkeys: HotkeyServiceProtocol
+    /// Uptime of the key-down that started the session (event time when known).
+    private var keyDownUptime: TimeInterval = 0
 
     /// Set by AppDelegate to open the onboarding/permissions window.
     var onNeedsPermissions: (() -> Void)?
@@ -50,9 +54,11 @@ final class DictationCoordinator {
     /// tasks from a superseded session can detect they're stale and bail out
     /// (e.g. Esc during .processing must never reach insertion).
     private var sessionGeneration = 0
-    private var lastQuickTapAt: Date?
+    private var lastQuickTapUptime: TimeInterval?
     private var maxTimer: Timer?
     private var idleTimer: Timer?
+    /// Holds mic audio captured before the recognizer session is ready.
+    private let handoff = AudioHandoff()
 
     init(
         appState: AppState,
@@ -66,7 +72,8 @@ final class DictationCoordinator {
         history: HistoryStore,
         permissions: PermissionsService,
         hotkeys: HotkeyServiceProtocol,
-        sounds: SoundPlayer
+        sounds: SoundPlayer,
+        trainingStore: TrainingSampleStore
     ) {
         self.appState = appState
         self.settings = settings
@@ -79,6 +86,8 @@ final class DictationCoordinator {
         self.history = history
         self.permissions = permissions
         self.sounds = sounds
+        self.trainingStore = trainingStore
+        self.hotkeys = hotkeys
 
         hotkeys.onDictationKeyDown = { [weak self] in self?.keyDown(mode: .dictation) }
         hotkeys.onDictationKeyUp = { [weak self] in self?.keyUp(mode: .dictation) }
@@ -103,23 +112,23 @@ final class DictationCoordinator {
         guard case .recording(let startedAt, let handsFree) = appState.phase, mode == sessionMode else { return }
         if handsFree { return } // hands-free sessions ignore key-up; stopped by tap/esc/timeout
 
-        let duration = Date().timeIntervalSince(startedAt)
+        let now = eventUptime()
+        let duration = now - keyDownUptime
         if duration < settings.minRecordingSeconds {
             // Quick tap: possibly the second tap of a double-tap -> hands-free lock.
-            let now = Date()
             if settings.handsFreeEnabled,
-               let last = lastQuickTapAt,
-               now.timeIntervalSince(last) < settings.doubleTapWindow {
-                lastQuickTapAt = nil
+               let last = lastQuickTapUptime,
+               now - last < settings.doubleTapWindow {
+                lastQuickTapUptime = nil
                 appState.phase = .recording(startedAt: startedAt, handsFree: true)
                 Log.app.info("hands-free lock engaged")
                 return
             }
-            lastQuickTapAt = now
+            lastQuickTapUptime = now
             cancelSession(reason: nil) // silent discard
             return
         }
-        lastQuickTapAt = nil
+        lastQuickTapUptime = nil
         stopAndProcess()
     }
 
@@ -156,6 +165,7 @@ final class DictationCoordinator {
         let gen = sessionGeneration
         sessionMode = mode
         sessionStart = Date()
+        keyDownUptime = eventUptime()
         capturedSelection = nil
         appState.sessionMode = mode
         appState.liveTranscript = ""
@@ -175,12 +185,31 @@ final class DictationCoordinator {
             formatter.prepareSession(for: makeFormattingRequest(raw: ""))
         }
 
-        sounds.playStart()
         transcriber.onPartial = { [weak self] text in
             self?.appState.liveTranscript = text
         }
         audio.onLevel = { [weak self] level in
             self?.appState.audioLevel = level
+        }
+        // The start sound is the cue to speak, so it waits until the mic is really
+        // hearing: on a cold device that is up to two seconds after key-down, and
+        // anything said before it was lost.
+        audio.onFirstBuffer = { [weak self] in
+            guard let self, self.sessionGeneration == gen, self.appState.phase.isRecording else { return }
+            if let keyDownAt = self.sessionStart {
+                let ms = Int(Date().timeIntervalSince(keyDownAt) * 1000)
+                Log.app.notice("mic live \(ms, privacy: .public) ms after key down")
+            }
+            self.sounds.playStart()
+        }
+
+        // Start the mic now rather than after the recognizer is set up, so nothing
+        // said during setup is lost; the handoff holds it until the session attaches.
+        handoff.reset()
+        // The recording limit counts from key-down, since the mic is live from here.
+        startMaxTimer()
+        if permissions.microphone == .granted {
+            guard startCapture() else { return }
         }
 
         // Chain onto the previous startup so TranscriptionEngine.beginSession is
@@ -199,6 +228,15 @@ final class DictationCoordinator {
                     self.onNeedsPermissions?()
                     return false
                 }
+                // The key may have been released while the prompt was up. As in
+                // `StartupRace.keyUpBeatStartup`, stopAndProcess is waiting on this
+                // task, so it must resolve the phase rather than return quietly.
+                guard self.sessionGeneration == gen else { return false }
+                guard self.appState.phase.isRecording else {
+                    self.fail(.tooShort)
+                    return false
+                }
+                guard self.startCapture() else { return false }
             }
             do {
                 let locale = self.settings.resolvedLocale
@@ -228,11 +266,9 @@ final class DictationCoordinator {
                     self.fail(.tooShort)
                     return false
                 }
-                self.audio.bufferHandler = { [weak transcriber = self.transcriber] buffer, _ in
+                self.handoff.attach { [weak transcriber = self.transcriber] buffer in
                     transcriber?.acceptBuffer(buffer)
                 }
-                try self.audio.start()
-                self.startMaxTimer()
                 return true
             } catch {
                 Log.app.error("session start failed: \(String(describing: error))")
@@ -246,6 +282,26 @@ final class DictationCoordinator {
                 }
                 return false
             }
+        }
+    }
+
+    /// When the current key event happened: its own timestamp during a hotkey
+    /// callback, otherwise now (menu-triggered test sessions).
+    private func eventUptime() -> TimeInterval {
+        hotkeys.lastEventUptime ?? ProcessInfo.processInfo.systemUptime
+    }
+
+    /// Starts the mic feeding the handoff. On failure the session is failed and
+    /// false is returned, so callers just bail out.
+    private func startCapture() -> Bool {
+        audio.bufferHandler = { [handoff] buffer, _ in handoff.accept(buffer) }
+        do {
+            try audio.start()
+            return true
+        } catch {
+            Log.app.error("mic start failed: \(String(describing: error))")
+            fail(.transcriptionFailed(error.localizedDescription))
+            return false
         }
     }
 
@@ -291,12 +347,14 @@ final class DictationCoordinator {
         appState.phase = .processing
         sounds.playStop()
         maxTimer?.invalidate()
+        // Off now, not after startup: audio after key-up is never used, and a slow
+        // startup (model download) would otherwise keep the mic live meanwhile.
+        audio.stop()
 
         Task { [weak self] in
             guard let self else { return }
             let started = await self.startupTask?.value ?? false
             guard self.sessionGeneration == gen else { return } // superseded/cancelled
-            self.audio.stop()
             self.appState.audioLevel = 0
             guard started else { return } // fail() already ran inside startupTask
 
@@ -305,6 +363,9 @@ final class DictationCoordinator {
                 // Esc during .processing bumps the generation; never insert then.
                 guard self.sessionGeneration == gen else { return }
                 let raw = outcome.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if DebugAudioRecorder.isEnabled {
+                    Log.app.notice("raw transcript: \(raw, privacy: .public)")
+                }
                 guard !raw.isEmpty else { throw DictationError.noSpeechDetected }
                 let duration = Date().timeIntervalSince(startedAt)
 
@@ -343,6 +404,7 @@ final class DictationCoordinator {
             raw: raw, final: text, duration: duration, mode: .dictation,
             engine: outcome.engine, corrections: formatted.corrections
         )
+        collectTrainingSample(raw: raw, outcome: outcome)
         succeed(with: text)
     }
 
@@ -406,6 +468,27 @@ final class DictationCoordinator {
             scheduleIdle(after: 1.2)
         } else {
             appState.phase = .idle
+        }
+    }
+
+    /// Hands an eligible dictation to the training store. Runs after insertion and
+    /// off the main actor, so a slow or failing disk never touches the dictation.
+    private func collectTrainingSample(raw: String, outcome: TranscriptionOutcome) {
+        guard TrainingSampleEligibility.accepts(
+            enabled: settings.collectTrainingData, mode: .dictation, outcome: outcome
+        ), let audio = outcome.audio else { return }
+        let sample = TrainingSample.make(
+            rawLabel: raw, audioSampleCount: audio.count,
+            appBundleID: pendingContext?.bundleID, labelSource: settings.cloudTranscriptionModel,
+            localeIdentifier: outcome.localeIdentifier
+        )
+        let store = trainingStore
+        Task.detached(priority: .utility) {
+            do {
+                try store.save(sample, audio: audio)
+            } catch {
+                Log.app.error("training sample not saved: \(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 

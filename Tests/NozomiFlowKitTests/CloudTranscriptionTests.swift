@@ -152,8 +152,35 @@ final class CloudTranscriptionTests: XCTestCase {
         (0..<4).reduce(UInt32(0)) { $0 | (UInt32(data[offset + $1]) << (8 * UInt32($1))) }
     }
 
+    // MARK: - Audio handed to training
+
+    func testUploadedAudioIsTheCloudSessionsRecordedSamples() throws {
+        let session = try XCTUnwrap(CloudTranscriptionSession(
+            config: CloudTranscriptionConfig(isEnabled: true, apiKey: "k"),
+            locale: Locale(identifier: "tr_TR")
+        ))
+        let samples: [Int16] = (0..<16_000).map { Int16(truncatingIfNeeded: $0) }
+        for buffer in CloudTranscriptionSession.buffers(from: samples) { session.accept(buffer) }
+
+        XCTAssertEqual(TranscriptionEngine.uploadedAudio(from: session), samples)
+    }
+
+    func testOnDeviceSessionsHaveNoUploadedAudio() {
+        XCTAssertNil(TranscriptionEngine.uploadedAudio(from: FakeLocalSession()))
+    }
+
     private func bytesContain(_ haystack: Data, _ needle: Data) -> Bool {
         guard !needle.isEmpty, haystack.count >= needle.count else { return false }
         return haystack.range(of: needle) != nil
     }
+}
+
+private final class FakeLocalSession: TranscriptionBackendSession, @unchecked Sendable {
+    var onPartial: (@Sendable (String) -> Void)?
+    let engineKind: TranscriptionEngineKind = .dictation
+    let resolvedLocaleIdentifier = "tr_TR"
+    func accept(_ buffer: AVAudioPCMBuffer) {}
+    func finish() async throws -> String { "" }
+    func cancel() {}
+    func snapshotText() -> String { "" }
 }

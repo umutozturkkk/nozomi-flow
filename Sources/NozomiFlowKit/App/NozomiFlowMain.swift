@@ -69,6 +69,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var onboarding: OnboardingController!
     private var meetingStore: MeetingStore!
     private var meetings: MeetingSessionController!
+    private var trainingStore: TrainingSampleStore!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         settings = SettingsStore()
@@ -85,6 +86,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeys = HotkeyMonitor(settings: settings)
         sounds = SoundPlayer(settings: settings)
 
+        trainingStore = TrainingSampleStore()
+        let store = trainingStore!
+        Task.detached(priority: .utility) { store.removeIncomplete() }
+
         coordinator = DictationCoordinator(
             appState: appState,
             settings: settings,
@@ -97,7 +102,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             history: history,
             permissions: permissions,
             hotkeys: hotkeys,
-            sounds: sounds
+            sounds: sounds,
+            trainingStore: trainingStore
         )
 
         hud = HUDController(appState: appState, settings: settings)
@@ -107,7 +113,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             dictionary: dictionary,
             history: history,
             permissions: permissions,
-            meetingStore: meetingStore
+            meetingStore: meetingStore,
+            trainingStore: trainingStore
         )
         onboarding = OnboardingController(
             appState: appState,
@@ -148,6 +155,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.appState.aiAvailability = await self.formatter.availabilityDescription()
         }
         prepareTranscriber()
+        prewarmMic()
+        // The input device goes cold across sleep; wake it before the first dictation.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.prewarmMic() }
+        }
 
         NotificationCenter.default.addObserver(
             forName: .murmurLocaleChanged, object: nil, queue: .main
@@ -175,6 +189,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if permissions.accessibility && !hotkeys.isRunning {
             try? hotkeys.start()
         }
+    }
+
+    /// A cold input device takes ~2 s to come up, which the first dictation used
+    /// to spend losing words. Skipped without mic permission so it never prompts.
+    private func prewarmMic() {
+        permissions.refresh()
+        guard permissions.microphone == .granted else { return }
+        DispatchQueue.main.async { [weak self] in self?.audio.prewarm() }
     }
 
     private func prepareTranscriber() {

@@ -78,6 +78,10 @@ struct TranscriptionOutcome: Equatable {
     var text: String
     var localeIdentifier: String?
     var engine: TranscriptionEngineKind
+    /// The exact 16 kHz mono PCM16 audio that was uploaded, when `text` came from
+    /// the cloud. nil for on-device results, including an on-device rescue of a
+    /// failed cloud request: those transcripts are not trustworthy training labels.
+    var audio: [Int16]? = nil
 }
 
 // MARK: - Context / tone

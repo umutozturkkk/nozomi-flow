@@ -7,11 +7,18 @@ import AVFAudio
 final class AudioCaptureEngine: AudioCaptureServiceProtocol {
     var bufferHandler: ((AVAudioPCMBuffer, AVAudioTime) -> Void)?
     var onLevel: ((Float) -> Void)?
+    var onFirstBuffer: (() -> Void)?
     private(set) var isCapturing = false
 
     private let engine = AVAudioEngine()
     private let tapBus: AVAudioNodeBus = 0
     private let tapBufferSize: AVAudioFrameCount = 4096
+    /// Lives as long as the engine, so the gain learned in one dictation carries
+    /// into the next. Touched only from the audio render thread.
+    private let gain = InputGainControl()
+    private let debugRecorder = DebugAudioRecorder()
+    /// Reset on each start, flipped by the first tap callback (audio thread only).
+    private var awaitingFirstBuffer = false
 
     // Touched only from the audio render thread (single serial caller).
     private var smoothedLevel: Float = 0
@@ -40,16 +47,31 @@ final class AudioCaptureEngine: AudioCaptureServiceProtocol {
 
     func start() throws {
         guard !isCapturing else { return }
+        awaitingFirstBuffer = true
         try installTapAndStart()
         isCapturing = true
+        if DebugAudioRecorder.isEnabled,
+           let url = debugRecorder.begin(format: engine.inputNode.outputFormat(forBus: tapBus)) {
+            Log.audio.notice("debug audio capture: \(url.path, privacy: .public)")
+        }
     }
 
     func stop() {
         guard isCapturing else { return }
         engine.inputNode.removeTap(onBus: tapBus)
         engine.stop()
+        debugRecorder.end()
         isCapturing = false
         smoothedLevel = 0
+    }
+
+    func prewarm() {
+        guard !isCapturing else { return }
+        // Resolving the input format is what initialises the device; measured at
+        // ~2.1 s cold versus ~0.1 s warm. It doesn't start IO, so nothing records.
+        let start = Date()
+        _ = engine.inputNode.outputFormat(forBus: tapBus)
+        Log.audio.notice("mic prewarm took \(Int(Date().timeIntervalSince(start) * 1000), privacy: .public) ms")
     }
 
     // MARK: - Engine plumbing
@@ -64,9 +86,22 @@ final class AudioCaptureEngine: AudioCaptureServiceProtocol {
         try engine.start()
     }
 
-    /// Runs on the audio render thread.
+    /// Runs on the audio render thread. Gain is applied in place before anything
+    /// downstream sees the buffer, so the recognizer and the level meter both get
+    /// the boosted signal.
     private func handleBuffer(_ buffer: AVAudioPCMBuffer, time: AVAudioTime) {
+        debugRecorder.append(buffer) // before gain: the raw mic, as delivered
+        if let data = buffer.floatChannelData {
+            let frames = Int(buffer.frameLength)
+            gain.process(channels: (0..<Int(buffer.format.channelCount)).map {
+                UnsafeMutableBufferPointer(start: data[$0], count: frames)
+            })
+        }
         bufferHandler?(buffer, time)
+        if awaitingFirstBuffer {
+            awaitingFirstBuffer = false
+            DispatchQueue.main.async { [weak self] in self?.onFirstBuffer?() }
+        }
         updateLevel(from: buffer)
     }
 

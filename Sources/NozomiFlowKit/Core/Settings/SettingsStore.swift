@@ -132,6 +132,13 @@ final class SettingsStore {
         return trimmed.isEmpty ? NSFullUserName() : trimmed
     }
 
+    // MARK: - Personal model
+
+    /// Saves cloud-transcribed dictations as training samples. Off by default.
+    var collectTrainingData: Bool = false {
+        didSet { persist(collectTrainingData, "collectTrainingData") }
+    }
+
     var cloudTranscriptionConfig: CloudTranscriptionConfig {
         CloudTranscriptionConfig(
             isEnabled: cloudTranscriptionEnabled,
@@ -205,6 +212,9 @@ final class SettingsStore {
         }
         cloudTranscriptionModel = defaults.string(forKey: "cloudTranscriptionModel") ?? "microsoft/mai-transcribe-1.5"
         cloudTranscriptionKey = KeychainHelper.get(account: "cloud_asr_api_key") ?? ""
+        if defaults.object(forKey: "collectTrainingData") != nil {
+            collectTrainingData = defaults.bool(forKey: "collectTrainingData")
+        }
         meetingSummaryModel = defaults.string(forKey: "meetingSummaryModel") ?? "google/gemini-2.5-flash-lite"
         if defaults.object(forKey: "meetingSpeakerDetectionEnabled") != nil {
             meetingSpeakerDetectionEnabled = defaults.bool(forKey: "meetingSpeakerDetectionEnabled")
