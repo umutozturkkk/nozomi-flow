@@ -16,10 +16,10 @@ struct MeetingsSettingsView: View {
                 List(store.meetings) { meeting in
                     row(meeting)
                         .contextMenu {
-                            Button("Show in Finder") {
+                            Button(L10n.string("settings.meetings.showInFinder")) {
                                 NSWorkspace.shared.activateFileViewerSelecting([meeting.url])
                             }
-                            Button("Delete", role: .destructive) { pendingDeletion = meeting }
+                            Button(L10n.string("common.delete"), role: .destructive) { pendingDeletion = meeting }
                         }
                 }
                 .listStyle(.inset)
@@ -27,17 +27,17 @@ struct MeetingsSettingsView: View {
         }
         .onAppear { store.reload() }
         .confirmationDialog(
-            "Delete these notes?",
+            L10n.string("settings.meetings.deleteConfirm.title"),
             isPresented: .init(get: { pendingDeletion != nil }, set: { if !$0 { pendingDeletion = nil } }),
             titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) {
+            Button(L10n.string("common.delete"), role: .destructive) {
                 if let pendingDeletion { store.delete(pendingDeletion) }
                 pendingDeletion = nil
             }
-            Button("Cancel", role: .cancel) { pendingDeletion = nil }
+            Button(L10n.string("common.cancel"), role: .cancel) { pendingDeletion = nil }
         } message: {
-            Text("The markdown file is removed from disk. This can't be undone.")
+            Text(L10n.string("settings.meetings.deleteConfirm.message"))
         }
     }
 
@@ -51,7 +51,7 @@ struct MeetingsSettingsView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 8)
-            Button("Open") { NSWorkspace.shared.open(meeting.url) }
+            Button(L10n.string("settings.meetings.open")) { NSWorkspace.shared.open(meeting.url) }
                 .buttonStyle(.bordered)
         }
         .padding(.vertical, 4)
@@ -62,9 +62,9 @@ struct MeetingsSettingsView: View {
             Image(systemName: "person.2.wave.2")
                 .font(.system(size: 34, weight: .light))
                 .foregroundStyle(.tertiary)
-            Text("No meetings yet")
+            Text(L10n.string("settings.meetings.emptyTitle"))
                 .font(.title3.weight(.semibold))
-            Text("Start one from the menu bar. Both sides of the call are recorded, transcribed and summarised into a markdown file.")
+            Text(L10n.string("settings.meetings.emptyMessage"))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

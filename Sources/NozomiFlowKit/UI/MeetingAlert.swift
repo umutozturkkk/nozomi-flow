@@ -21,13 +21,13 @@ enum MeetingAlert {
 
         switch failure {
         case .cloudTranscriptionOff:
-            alert.addButton(withTitle: "Open Settings")
-            alert.addButton(withTitle: "Cancel")
+            alert.addButton(withTitle: L10n.string("alert.meeting.openSettings"))
+            alert.addButton(withTitle: L10n.string("common.cancel"))
         case .screenRecordingDenied:
-            alert.addButton(withTitle: "Open System Settings")
-            alert.addButton(withTitle: "Cancel")
+            alert.addButton(withTitle: L10n.string("common.openSettings"))
+            alert.addButton(withTitle: L10n.string("common.cancel"))
         case .couldNotStart, .couldNotSaveNotes:
-            alert.addButton(withTitle: "OK")
+            alert.addButton(withTitle: L10n.string("common.ok"))
         }
 
         guard run(alert) == .alertFirstButtonReturn else { return }
@@ -40,11 +40,11 @@ enum MeetingAlert {
 
     static func presentNotes(_ record: MeetingRecord) {
         let alert = NSAlert()
-        alert.messageText = "Meeting notes are ready"
+        alert.messageText = L10n.string("alert.meeting.notesReady")
         alert.informativeText = record.title
-        alert.addButton(withTitle: "Open Notes")
-        alert.addButton(withTitle: "Show in Finder")
-        alert.addButton(withTitle: "Close")
+        alert.addButton(withTitle: L10n.string("alert.meeting.openNotes"))
+        alert.addButton(withTitle: L10n.string("alert.meeting.showInFinder"))
+        alert.addButton(withTitle: L10n.string("alert.meeting.close"))
 
         switch run(alert) {
         case .alertFirstButtonReturn: NSWorkspace.shared.open(record.url)

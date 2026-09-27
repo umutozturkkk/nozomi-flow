@@ -10,6 +10,11 @@ struct MeetingChunk: Equatable {
     /// than a clock, so the two tracks can be interleaved by time afterwards.
     let startOffset: TimeInterval
     let duration: TimeInterval
+    /// Who the meeting UI said was talking for most of this chunk, when anything was
+    /// reading the meeting UI. Stamped as the chunk closes rather than looked up by
+    /// offset afterwards: offsets come from samples written while caption times come
+    /// from the wall clock, and the two drift if the capture ever drops a buffer.
+    var speaker: String?
 
     var endOffset: TimeInterval { startOffset + duration }
 }
@@ -53,6 +58,35 @@ final class MeetingRecorder: @unchecked Sendable {
         if let finished { onChunk?(finished) }
     }
 
+    /// The meeting UI reported a new speaker on the far side.
+    ///
+    /// This is what fixes the two minute blob: instead of cutting the remote track on
+    /// a timer and handing the summarizer a monologue, the chunk ends where the
+    /// speaker did, so every upload belongs to one person and can be labelled with
+    /// their name. A change too early in a chunk is remembered but not acted on, so a
+    /// lively exchange does not become one upload per interjection.
+    ///
+    /// The microphone track ignores this entirely: it already has exactly one speaker.
+    func speakerChanged(to name: String?) {
+        let finished: MeetingChunk? = {
+            lock.lock(); defer { lock.unlock() }
+            let writer = writers[.system] ?? TrackWriter(track: .system, directory: directory)
+            writers[.system] = writer
+
+            guard let cut = chunker.speakerCutPoint(in: writer.pending) else {
+                writer.noteSpeaker(name)
+                return nil
+            }
+            let chunk = writer.flush(upTo: cut)
+            // Everything past the cut is the pause and the new speaker's opening
+            // words, which the caption engine was still catching up on.
+            writer.resetSpeaker(to: name)
+            return chunk
+        }()
+
+        if let finished { onChunk?(finished) }
+    }
+
     /// Closes whatever is still buffered and hands the trailing chunks back.
     ///
     /// Deliberately does not fire `onChunk` for them: the caller already has them as
@@ -79,6 +113,11 @@ private final class TrackWriter {
     private var index = 0
     private var framesWritten = 0
 
+    /// Who held the track over each stretch of `pending`, as (name, first sample).
+    /// A range rather than a single current name because a chunk can outlive several
+    /// speaker changes, and the label belongs to whoever actually filled it.
+    private var runs: [(name: String?, start: Int)] = []
+
     init(track: MeetingTrack, directory: URL) {
         self.track = track
         self.directory = directory
@@ -88,19 +127,41 @@ private final class TrackWriter {
         pending.append(contentsOf: samples)
     }
 
+    /// Records a speaker change without cutting. Repeats are collapsed so the run
+    /// list stays as short as the conversation actually is.
+    func noteSpeaker(_ name: String?) {
+        if let last = runs.last, last.name == name { return }
+        runs.append((name, pending.count))
+    }
+
+    /// Declares that everything still buffered belongs to `name`, used right after a
+    /// cut where the remaining tail is the pause and the new speaker's first words.
+    func resetSpeaker(to name: String?) {
+        runs = [(name, 0)]
+    }
+
     /// Writes the pending samples out and resets. Returns nil when there is nothing
     /// buffered, so finishing an idle track produces no empty file.
     func flush() -> MeetingChunk? {
-        guard !pending.isEmpty else { return nil }
+        flush(upTo: pending.count)
+    }
 
-        let frames = pending.count
+    /// Writes the first `limit` samples as a chunk and keeps the rest as the start of
+    /// the next one, so cutting mid-buffer never drops audio.
+    func flush(upTo limit: Int) -> MeetingChunk? {
+        let cut = min(max(limit, 0), pending.count)
+        guard cut > 0 else { return nil }
+
+        let head = Array(pending[..<cut])
+        let speaker = dominantSpeaker(within: cut)
         let url = directory.appendingPathComponent(String(format: "%@-%03d.wav", track.rawValue, index))
-        let wav = CloudTranscriptionSession.makeWAV(samples: pending, sampleRate: MeetingChunker.sampleRate)
+        let wav = CloudTranscriptionSession.makeWAV(samples: head, sampleRate: MeetingChunker.sampleRate)
         do {
             try wav.write(to: url, options: .atomic)
         } catch {
             Log.audio.error("could not write meeting chunk: \(error.localizedDescription)")
-            pending.removeAll(keepingCapacity: true)
+            pending.removeFirst(cut)
+            rebaseRuns(after: cut)
             return nil
         }
 
@@ -109,12 +170,42 @@ private final class TrackWriter {
             index: index,
             url: url,
             startOffset: MeetingChunker.duration(frames: framesWritten),
-            duration: MeetingChunker.duration(frames: frames)
+            duration: MeetingChunker.duration(frames: cut),
+            speaker: speaker
         )
         index += 1
-        framesWritten += frames
-        pending.removeAll(keepingCapacity: true)
+        framesWritten += cut
+        pending.removeFirst(cut)
+        rebaseRuns(after: cut)
         return chunk
+    }
+
+    /// Whoever held the most samples before `limit`. Ties and unnamed stretches
+    /// simply lose, which leaves the chunk unlabelled and the transcript falling back
+    /// to the track's own label.
+    private func dominantSpeaker(within limit: Int) -> String? {
+        var totals: [String: Int] = [:]
+        for (position, run) in runs.enumerated() {
+            guard run.start < limit else { break }
+            let next = position + 1 < runs.count ? min(runs[position + 1].start, limit) : limit
+            guard let name = run.name, next > run.start else { continue }
+            totals[name, default: 0] += next - run.start
+        }
+        return totals.max { $0.value < $1.value }?.key
+    }
+
+    /// Shifts the run list into the next chunk's coordinates. The run spanning the
+    /// cut becomes that chunk's opening run rather than being dropped.
+    private func rebaseRuns(after cut: Int) {
+        var rebased: [(name: String?, start: Int)] = []
+        for run in runs {
+            if run.start <= cut {
+                rebased = [(run.name, 0)]
+            } else {
+                rebased.append((run.name, run.start - cut))
+            }
+        }
+        runs = rebased
     }
 }
 

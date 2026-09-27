@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "NozomiFlow",
+    defaultLocalization: "en",
     platforms: [.macOS("26.0")],
     targets: [
         .executableTarget(
@@ -14,6 +15,7 @@ let package = Package(
         .target(
             name: "NozomiFlowKit",
             path: "Sources/NozomiFlowKit",
+            resources: [.process("Resources")],
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .testTarget(

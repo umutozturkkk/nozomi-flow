@@ -22,6 +22,7 @@ final class SettingsWindowController: NSObject {
     private let history: HistoryStore
     private let permissions: PermissionsService
     private let meetingStore: MeetingStore
+    private let trainingStore: TrainingSampleStore
     private let tabSelection = SettingsTabSelection()
     private var window: NSWindow?
 
@@ -31,7 +32,8 @@ final class SettingsWindowController: NSObject {
         dictionary: PersonalDictionaryStore,
         history: HistoryStore,
         permissions: PermissionsService,
-        meetingStore: MeetingStore
+        meetingStore: MeetingStore,
+        trainingStore: TrainingSampleStore
     ) {
         self.appState = appState
         self.settings = settings
@@ -39,6 +41,7 @@ final class SettingsWindowController: NSObject {
         self.history = history
         self.permissions = permissions
         self.meetingStore = meetingStore
+        self.trainingStore = trainingStore
     }
 
     func show(tab: SettingsTab = .general) {
@@ -51,7 +54,8 @@ final class SettingsWindowController: NSObject {
                 dictionary: dictionary,
                 history: history,
                 permissions: permissions,
-                meetingStore: meetingStore
+                meetingStore: meetingStore,
+                trainingStore: trainingStore
             )
             let w = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 760, height: 540),

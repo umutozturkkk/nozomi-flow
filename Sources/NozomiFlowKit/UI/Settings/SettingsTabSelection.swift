@@ -19,7 +19,16 @@ final class SettingsTabSelection {
 /// Sidebar presentation metadata for each tab -- System Settings-style icon
 /// chip (SF symbol + tint) plus its display label.
 extension SettingsTab {
-    var displayName: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .general: return L10n.string("settings.tab.general")
+        case .style: return L10n.string("settings.tab.style")
+        case .dictionary: return L10n.string("settings.tab.dictionary")
+        case .meetings: return L10n.string("settings.tab.meetings")
+        case .history: return L10n.string("settings.tab.history")
+        case .about: return L10n.string("settings.tab.about")
+        }
+    }
 
     var symbolName: String {
         switch self {

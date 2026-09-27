@@ -110,6 +110,35 @@ final class SettingsStore {
         didSet { persist(meetingSummaryModel, "meetingSummaryModel") }
     }
 
+    /// Reads the meeting window's captions and participant list to label who is
+    /// speaking. On by default because a transcript that cannot name anyone is the
+    /// problem this solves, and off is a single switch away for anyone who would
+    /// rather nothing read their screen.
+    var meetingSpeakerDetectionEnabled: Bool = true {
+        didSet { persist(meetingSpeakerDetectionEnabled, "meetingSpeakerDetectionEnabled") }
+    }
+
+    /// What to call the microphone's owner in a meeting transcript. Real names on
+    /// both sides make notes readable by someone who was not on the call, and give
+    /// the summarizer one consistent vocabulary instead of "You" against a name.
+    var userDisplayName: String = "" {
+        didSet { persist(userDisplayName, "userDisplayName") }
+    }
+
+    /// The name to actually write, falling back to the account's full name so the
+    /// setting can stay empty and still produce something better than "You".
+    var resolvedUserDisplayName: String {
+        let trimmed = userDisplayName.trimmingCharacters(in: .whitespaces)
+        return trimmed.isEmpty ? NSFullUserName() : trimmed
+    }
+
+    // MARK: - Personal model
+
+    /// Saves cloud-transcribed dictations as training samples. Off by default.
+    var collectTrainingData: Bool = false {
+        didSet { persist(collectTrainingData, "collectTrainingData") }
+    }
+
     var cloudTranscriptionConfig: CloudTranscriptionConfig {
         CloudTranscriptionConfig(
             isEnabled: cloudTranscriptionEnabled,
@@ -183,7 +212,14 @@ final class SettingsStore {
         }
         cloudTranscriptionModel = defaults.string(forKey: "cloudTranscriptionModel") ?? "microsoft/mai-transcribe-1.5"
         cloudTranscriptionKey = KeychainHelper.get(account: "cloud_asr_api_key") ?? ""
+        if defaults.object(forKey: "collectTrainingData") != nil {
+            collectTrainingData = defaults.bool(forKey: "collectTrainingData")
+        }
         meetingSummaryModel = defaults.string(forKey: "meetingSummaryModel") ?? "google/gemini-2.5-flash-lite"
+        if defaults.object(forKey: "meetingSpeakerDetectionEnabled") != nil {
+            meetingSpeakerDetectionEnabled = defaults.bool(forKey: "meetingSpeakerDetectionEnabled")
+        }
+        userDisplayName = defaults.string(forKey: "userDisplayName") ?? ""
         if defaults.object(forKey: "playSounds") != nil { playSounds = defaults.bool(forKey: "playSounds") }
         if defaults.object(forKey: "showLiveTranscript") != nil { showLiveTranscript = defaults.bool(forKey: "showLiveTranscript") }
         if defaults.object(forKey: "historyEnabled") != nil { historyEnabled = defaults.bool(forKey: "historyEnabled") }

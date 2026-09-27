@@ -16,7 +16,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     /// Quick-switch options surfaced directly in the menu; the full locale
     /// list lives in Settings > General. nil identifier = follow the system.
     private static let languageOptions: [(title: String, identifier: String?)] = [
-        ("System Default", nil),
+        (L10n.string("menu.language.systemDefault"), nil),
         ("English (US)", "en_US"),
         ("Türkçe", "tr_TR"),
     ]
@@ -73,27 +73,27 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        let test = NSMenuItem(title: "Test Dictation (2s)", action: #selector(testDictation), keyEquivalent: "")
+        let test = NSMenuItem(title: L10n.string("menu.testDictation"), action: #selector(testDictation), keyEquivalent: "")
         test.target = self
         test.tag = MenuTag.testDictation.rawValue
         menu.addItem(test)
 
-        let copyLast = NSMenuItem(title: "Copy Last Transcript", action: #selector(copyLastTranscript), keyEquivalent: "")
+        let copyLast = NSMenuItem(title: L10n.string("menu.copyLastTranscript"), action: #selector(copyLastTranscript), keyEquivalent: "")
         copyLast.target = self
         copyLast.tag = MenuTag.copyLast.rawValue
         menu.addItem(copyLast)
 
-        let pause = NSMenuItem(title: "Pause Nozomi Flow", action: #selector(togglePause), keyEquivalent: "")
+        let pause = NSMenuItem(title: L10n.string("menu.pause"), action: #selector(togglePause), keyEquivalent: "")
         pause.target = self
         pause.tag = MenuTag.pause.rawValue
         menu.addItem(pause)
 
-        let meeting = NSMenuItem(title: "Record Meeting", action: #selector(toggleMeetingRecording), keyEquivalent: "")
+        let meeting = NSMenuItem(title: L10n.string("menu.meeting.record"), action: #selector(toggleMeetingRecording), keyEquivalent: "")
         meeting.target = self
         meeting.tag = MenuTag.meeting.rawValue
         menu.addItem(meeting)
 
-        let language = NSMenuItem(title: "Language", action: nil, keyEquivalent: "")
+        let language = NSMenuItem(title: L10n.string("menu.language"), action: nil, keyEquivalent: "")
         language.tag = MenuTag.language.rawValue
         let langMenu = NSMenu()
         langMenu.autoenablesItems = false
@@ -104,7 +104,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             langMenu.addItem(item)
         }
         langMenu.addItem(.separator())
-        let moreLanguages = NSMenuItem(title: "More Languages…", action: #selector(showSettings), keyEquivalent: "")
+        let moreLanguages = NSMenuItem(title: L10n.string("menu.language.more"), action: #selector(showSettings), keyEquivalent: "")
         moreLanguages.target = self
         langMenu.addItem(moreLanguages)
         language.submenu = langMenu
@@ -112,21 +112,21 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        let history = NSMenuItem(title: "History…", action: #selector(showHistory), keyEquivalent: "")
+        let history = NSMenuItem(title: L10n.string("menu.history"), action: #selector(showHistory), keyEquivalent: "")
         history.target = self
         menu.addItem(history)
 
-        let settings = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
+        let settings = NSMenuItem(title: L10n.string("menu.settings"), action: #selector(showSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
 
-        let onboarding = NSMenuItem(title: "Setup Assistant…", action: #selector(showOnboarding), keyEquivalent: "")
+        let onboarding = NSMenuItem(title: L10n.string("menu.setupAssistant"), action: #selector(showOnboarding), keyEquivalent: "")
         onboarding.target = self
         menu.addItem(onboarding)
 
         menu.addItem(.separator())
 
-        let quit = NSMenuItem(title: "Quit Nozomi Flow", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quit = NSMenuItem(title: L10n.string("menu.quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
         return menu
     }
@@ -142,11 +142,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
-        menu.item(withTag: MenuTag.engineHeader.rawValue)?.title = "Nozomi Flow — \(appState.currentEngine.displayName)"
+        menu.item(withTag: MenuTag.engineHeader.rawValue)?.title = L10n.format("menu.engineHeader", appState.currentEngine.displayName)
 
         if let statsItem = menu.item(withTag: MenuTag.statsHeader.rawValue) {
             if let stats = historyProvider?() {
-                statsItem.title = "\(stats.wordsToday) word\(stats.wordsToday == 1 ? "" : "s") today"
+                statsItem.title = L10n.format(
+                    stats.wordsToday == 1 ? "menu.wordsToday.one" : "menu.wordsToday.other",
+                    stats.wordsToday
+                )
                 statsItem.isHidden = false
             } else {
                 statsItem.isHidden = true
@@ -161,20 +164,20 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             }
         }
 
-        menu.item(withTag: MenuTag.pause.rawValue)?.title = appState.isPaused ? "Resume Nozomi Flow" : "Pause Nozomi Flow"
+        menu.item(withTag: MenuTag.pause.rawValue)?.title = L10n.string(appState.isPaused ? "menu.resume" : "menu.pause")
 
         // The one control that has to say what it will do next, not what is happening:
         // a meeting runs for an hour and the menu is how it gets stopped.
         if let meetingItem = menu.item(withTag: MenuTag.meeting.rawValue) {
             switch meetingPhase() {
             case .idle:
-                meetingItem.title = "Record Meeting"
+                meetingItem.title = L10n.string("menu.meeting.record")
                 meetingItem.isEnabled = true
             case .recording:
-                meetingItem.title = "Stop Recording"
+                meetingItem.title = L10n.string("menu.meeting.stop")
                 meetingItem.isEnabled = true
             case .processing:
-                meetingItem.title = "Writing notes…"
+                meetingItem.title = L10n.string("menu.meeting.writingNotes")
                 meetingItem.isEnabled = false
             }
         }

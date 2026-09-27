@@ -21,9 +21,9 @@ struct OnboardingTryItStep: View {
                 OnboardingStepIcon(systemName: "mic.and.signal.meter.fill")
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Try it out")
+                    Text(L10n.string("onboarding.tryIt.title"))
                         .font(.system(size: 24, weight: .bold, design: .rounded))
-                    Text("One quick test before you go.")
+                    Text(L10n.string("onboarding.tryIt.subtitle"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -34,7 +34,7 @@ struct OnboardingTryItStep: View {
                 statusRow
 
                 Button(action: runDebugSimulate) {
-                    Text("Or run a 2-second test")
+                    Text(L10n.string("onboarding.tryIt.simulate"))
                         .font(.callout)
                         .underline()
                 }
@@ -42,7 +42,7 @@ struct OnboardingTryItStep: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
 
-                Toggle("Launch Nozomi Flow at login", isOn: $settings.launchAtLogin)
+                Toggle(L10n.string("onboarding.tryIt.launchAtLogin"), isOn: $settings.launchAtLogin)
                     .toggleStyle(.switch)
                     .font(.callout)
             }
@@ -63,7 +63,7 @@ struct OnboardingTryItStep: View {
         // guess was wrong, so the caret sat above and left of the placeholder it was
         // supposed to share a baseline with. A native prompt cannot drift.
         TextField(
-            "Click here, then hold \(settings.dictationKey.displayName) and say something…",
+            L10n.format("onboarding.tryIt.placeholder", settings.dictationKey.displayName),
             text: $playgroundText,
             axis: .vertical
         )
@@ -82,20 +82,20 @@ struct OnboardingTryItStep: View {
             switch appState.phase {
             case .idle:
                 Image(systemName: "circle.dashed").foregroundStyle(.tertiary)
-                Text("Ready when you are.").foregroundStyle(.tertiary)
+                Text(L10n.string("onboarding.tryIt.idle")).foregroundStyle(.tertiary)
             case .recording:
                 Circle().fill(Color.red).frame(width: 6, height: 6)
-                Text("Listening…").foregroundStyle(.primary)
+                Text(L10n.string("onboarding.tryIt.listening")).foregroundStyle(.primary)
                 LevelMeterView(level: appState.audioLevel).frame(width: 64)
             case .processing:
                 Image(systemName: "wand.and.stars").foregroundStyle(Color.indigo)
-                Text("Polishing…").foregroundStyle(.primary)
+                Text(L10n.string("onboarding.tryIt.polishing")).foregroundStyle(.primary)
             case .inserting:
                 Image(systemName: "arrow.right.circle").foregroundStyle(Color.indigo)
-                Text("Inserting…").foregroundStyle(.primary)
+                Text(L10n.string("onboarding.tryIt.inserting")).foregroundStyle(.primary)
             case .success(let words):
                 Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.green)
-                Text("Inserted \(words) word\(words == 1 ? "" : "s")").foregroundStyle(.primary)
+                Text(L10n.format(words == 1 ? "onboarding.tryIt.inserted.one" : "onboarding.tryIt.inserted.other", words)).foregroundStyle(.primary)
             case .failure(let error):
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.red)
                 Text(error.userMessage).foregroundStyle(.primary)
@@ -114,7 +114,7 @@ struct OnboardingTryItStep: View {
 
     private var primarySpec: OnboardingButtonSpec {
         OnboardingButtonSpec(
-            title: "Finish",
+            title: L10n.string("onboarding.tryIt.finish"),
             systemImage: "sparkles",
             isEnabled: hasSucceededOnce,
             celebrate: hasSucceededOnce,

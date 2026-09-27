@@ -35,7 +35,7 @@ struct DictionarySettingsView: View {
             Button {
                 sheetMode = .add
             } label: {
-                Label("Add", systemImage: "plus")
+                Label(L10n.string("common.add"), systemImage: "plus")
             }
         }
         .padding(.horizontal, 16)
@@ -80,11 +80,11 @@ struct DictionarySettingsView: View {
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { sheetMode = .edit(entry) }
         .contextMenu {
-            Button("Edit") { sheetMode = .edit(entry) }
-            Button("Delete", role: .destructive) { dictionary.delete(id: entry.id) }
+            Button(L10n.string("common.edit")) { sheetMode = .edit(entry) }
+            Button(L10n.string("common.delete"), role: .destructive) { dictionary.delete(id: entry.id) }
         }
         .swipeActions {
-            Button("Delete", role: .destructive) { dictionary.delete(id: entry.id) }
+            Button(L10n.string("common.delete"), role: .destructive) { dictionary.delete(id: entry.id) }
         }
     }
 
@@ -97,9 +97,9 @@ struct DictionarySettingsView: View {
                 .symbolEffect(.bounce, value: bounceTrigger)
                 .onAppear { bounceTrigger.toggle() }
             VStack(spacing: 4) {
-                Text("Teach Nozomi Flow your words")
+                Text(L10n.string("settings.dictionary.emptyTitle"))
                     .font(.title3.weight(.semibold))
-                Text("Names, brands, jargon — add the words Nozomi Flow should always get right.")
+                Text(L10n.string("settings.dictionary.emptyMessage"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -108,7 +108,7 @@ struct DictionarySettingsView: View {
             Button {
                 sheetMode = .add
             } label: {
-                Label("Add Word", systemImage: "plus")
+                Label(L10n.string("settings.dictionary.addWord"), systemImage: "plus")
             }
             .buttonStyle(.borderedProminent)
         }

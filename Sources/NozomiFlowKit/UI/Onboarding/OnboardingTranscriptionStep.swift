@@ -21,7 +21,7 @@ struct OnboardingTranscriptionStep: View {
             showBack: true,
             onBack: onBack,
             primary: OnboardingButtonSpec(
-                title: "Continue",
+                title: L10n.string("common.continue"),
                 systemImage: "arrow.right",
                 action: onNext
             )
@@ -30,20 +30,20 @@ struct OnboardingTranscriptionStep: View {
                 OnboardingStepIcon(systemName: "waveform")
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Language and engine")
+                    Text(L10n.string("onboarding.transcription.title"))
                         .font(.system(size: 24, weight: .bold, design: .rounded))
-                    Text("Both are changeable later in Settings")
+                    Text(L10n.string("onboarding.transcription.subtitle"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("LANGUAGE")
+                    Text(L10n.string("onboarding.transcription.language"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .kerning(0.6)
                     Picker("", selection: $settings.localeIdentifier) {
-                        Text("System language").tag(nil as String?)
+                        Text(L10n.string("onboarding.transcription.systemLanguage")).tag(nil as String?)
                         ForEach(LocaleCatalog.curated) { option in
                             Text(option.label).tag(option.identifier as String?)
                         }
@@ -52,20 +52,20 @@ struct OnboardingTranscriptionStep: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("TRANSCRIPTION")
+                    Text(L10n.string("onboarding.transcription.transcription"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .kerning(0.6)
                     Picker("", selection: $settings.cloudTranscriptionEnabled) {
-                        Text("On this Mac").tag(false)
-                        Text("Cloud").tag(true)
+                        Text(L10n.string("onboarding.transcription.onDevice")).tag(false)
+                        Text(L10n.string("onboarding.transcription.cloud")).tag(true)
                     }
                     .labelsHidden()
                     .pickerStyle(.segmented)
 
-                    Text(settings.cloudTranscriptionEnabled
-                         ? "Audio is uploaded when you release the key. More accurate on speech that mixes languages, and nothing is downloaded."
-                         : "Nothing leaves this Mac. The language model downloads once, the first time you dictate.")
+                    Text(L10n.string(settings.cloudTranscriptionEnabled
+                         ? "onboarding.transcription.cloudNote"
+                         : "onboarding.transcription.onDeviceNote"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -92,7 +92,7 @@ private struct CloudKeyField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SecureField("API key", text: $settings.cloudTranscriptionKey)
+            SecureField(L10n.string("onboarding.transcription.apiKey"), text: $settings.cloudTranscriptionKey)
                 .textFieldStyle(.roundedBorder)
 
             if settings.cloudTranscriptionKey.isEmpty {
@@ -101,10 +101,10 @@ private struct CloudKeyField: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.orange)
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Without a key the cloud engine cannot run, and dictation falls back to this Mac.")
+                        Text(L10n.string("onboarding.transcription.noKeyWarning"))
                             .font(.callout)
                             .fixedSize(horizontal: false, vertical: true)
-                        Button("Get a key at openrouter.ai") {
+                        Button(L10n.string("onboarding.transcription.getKey")) {
                             if let url = URL(string: "https://openrouter.ai/keys") {
                                 NSWorkspace.shared.open(url)
                             }

@@ -22,9 +22,9 @@ struct OnboardingScreenRecordingStep: View {
         OnboardingStepScaffold(
             showBack: true,
             onBack: onBack,
-            secondary: granted ? nil : OnboardingButtonSpec(title: "Skip", action: onNext),
+            secondary: granted ? nil : OnboardingButtonSpec(title: L10n.string("onboarding.screenRecording.skip"), action: onNext),
             primary: OnboardingButtonSpec(
-                title: granted ? "Continue" : "Allow",
+                title: L10n.string(granted ? "common.continue" : "onboarding.screenRecording.allow"),
                 systemImage: granted ? "arrow.right" : nil,
                 action: { granted ? onNext() : request() }
             )
@@ -33,18 +33,14 @@ struct OnboardingScreenRecordingStep: View {
                 OnboardingStepIcon(systemName: "person.2.wave.2")
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Meeting recording")
+                    Text(L10n.string("onboarding.screenRecording.title"))
                         .font(.system(size: 24, weight: .bold, design: .rounded))
-                    Text("Optional. Dictation works without it.")
+                    Text(L10n.string("onboarding.screenRecording.subtitle"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
 
-                Text("""
-                    To capture the other side of a call, macOS routes system audio \
-                    through Screen Recording. Nothing on your screen is read or kept: \
-                    the video side of that stream is two pixels wide and thrown away.
-                    """)
+                Text(L10n.string("onboarding.screenRecording.body"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -52,18 +48,18 @@ struct OnboardingScreenRecordingStep: View {
                 if granted {
                     OnboardingStatusChip(
                         icon: "checkmark.circle.fill",
-                        title: "Ready to record meetings",
+                        title: L10n.string("onboarding.screenRecording.ready"),
                         style: .success,
                         bounce: true
                     )
                 } else if didRequest {
                     OnboardingStatusChip(
                         icon: "exclamationmark.triangle.fill",
-                        title: "Still not allowed",
-                        subtitle: "macOS only asks once. Turn it on in System Settings, then come back.",
+                        title: L10n.string("onboarding.screenRecording.notAllowed"),
+                        subtitle: L10n.string("onboarding.screenRecording.notAllowedHint"),
                         style: .warning
                     )
-                    Button("Open Screen Recording settings") {
+                    Button(L10n.string("onboarding.screenRecording.openSettings")) {
                         MeetingSessionController.openScreenRecordingSettings()
                     }
                     .buttonStyle(.bordered)

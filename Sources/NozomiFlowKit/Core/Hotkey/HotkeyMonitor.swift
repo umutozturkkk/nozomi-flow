@@ -13,6 +13,7 @@ import Foundation
 final class HotkeyMonitor: HotkeyServiceProtocol {
     var onDictationKeyDown: (() -> Void)?
     var onDictationKeyUp: (() -> Void)?
+    private(set) var lastEventUptime: TimeInterval?
     var onCommandKeyDown: (() -> Void)?
     var onCommandKeyUp: (() -> Void)?
     var onEscape: (() -> Void)?
@@ -125,6 +126,8 @@ final class HotkeyMonitor: HotkeyServiceProtocol {
         }
 
         let keyCode = CGKeyCode(truncatingIfNeeded: event.getIntegerValueField(.keyboardEventKeycode))
+        lastEventUptime = EventUptime.seconds(fromEventTimestamp: event.timestamp)
+        defer { lastEventUptime = nil }
         switch type {
         case .flagsChanged:
             handleFlagsChanged(keyCode: keyCode, rawFlags: event.flags.rawValue)
@@ -177,9 +180,9 @@ enum HotkeyMonitorError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .accessibilityNotTrusted:
-            return "Nozomi Flow needs Accessibility permission to listen for the dictation hotkey. Grant it in System Settings > Privacy & Security > Accessibility, then try again."
+            return L10n.string("error.hotkey.accessibility")
         case .tapCreationFailed:
-            return "Failed to install the global hotkey listener (CGEventTap could not be created)."
+            return L10n.string("error.hotkey.tapFailed")
         }
     }
 }

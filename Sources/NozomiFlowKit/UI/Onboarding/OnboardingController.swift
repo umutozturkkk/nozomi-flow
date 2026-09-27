@@ -70,7 +70,7 @@ final class OnboardingController: NSObject {
             backing: .buffered,
             defer: false
         )
-        win.title = "Nozomi Flow Setup"
+        win.title = L10n.string("onboarding.windowTitle")
         win.titlebarAppearsTransparent = true
         win.titleVisibility = .hidden
         win.isMovableByWindowBackground = true

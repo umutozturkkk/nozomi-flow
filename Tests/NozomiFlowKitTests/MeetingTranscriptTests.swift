@@ -9,8 +9,10 @@ import XCTest
 final class MeetingTranscriptTests: XCTestCase {
 
     private func segment(_ track: MeetingTrack, at start: TimeInterval,
-                         _ text: String, duration: TimeInterval = 10) -> MeetingSegment {
-        MeetingSegment(track: track, startOffset: start, duration: duration, text: text)
+                         _ text: String, duration: TimeInterval = 10,
+                         speaker: String? = nil) -> MeetingSegment {
+        MeetingSegment(track: track, startOffset: start, duration: duration,
+                       text: text, speaker: speaker)
     }
 
     // MARK: - Ordering
@@ -118,6 +120,54 @@ final class MeetingTranscriptTests: XCTestCase {
         ]))
         XCTAssertTrue(markdown.contains("**0:00 You:** Merhaba"))
         XCTAssertTrue(markdown.contains("**1:05 Them:** Merhaba, nasilsin"))
+    }
+
+    // MARK: - Named speakers
+
+    func testNamedSegmentsRenderWithTheirNames() {
+        let lines = MeetingTranscript.merge([
+            segment(.microphone, at: 0, "Merhaba"),
+            segment(.system, at: 20, "Merhaba, hoş geldin", speaker: "Ahmet"),
+            segment(.system, at: 40, "Ben de buradayım", speaker: "Ayşe"),
+        ], userName: "Umut")
+
+        XCTAssertEqual(lines.map(\.speaker), ["Umut", "Ahmet", "Ayşe"])
+    }
+
+    func testConsecutiveTurnsFromOneNameCoalesce() {
+        let lines = MeetingTranscript.merge([
+            segment(.system, at: 0, "ilk parça", speaker: "Ahmet"),
+            segment(.system, at: 20, "ikinci parça", speaker: "Ahmet"),
+            segment(.system, at: 40, "başkası", speaker: "Ayşe"),
+        ])
+
+        XCTAssertEqual(lines.count, 2)
+        XCTAssertEqual(lines.first?.text, "ilk parça ikinci parça")
+    }
+
+    func testUnnamedSegmentsFallBackToTheTrackLabel() {
+        // Captions off, an unreadable window, or speaker detection turned off. This
+        // is the behaviour the feature must not regress.
+        let lines = MeetingTranscript.merge([
+            segment(.microphone, at: 0, "Merhaba"),
+            segment(.system, at: 20, "Merhaba"),
+        ])
+
+        XCTAssertEqual(lines.map(\.speaker), ["You", "Them"])
+    }
+
+    func testTheUserNameOnlyLabelsTheMicrophone() {
+        let lines = MeetingTranscript.merge([
+            segment(.microphone, at: 0, "Merhaba"),
+            segment(.system, at: 20, "Merhaba"),
+        ], userName: "Umut")
+
+        XCTAssertEqual(lines.map(\.speaker), ["Umut", "Them"])
+    }
+
+    func testAnEmptyUserNameStillRendersReadably() {
+        let lines = MeetingTranscript.merge([segment(.microphone, at: 0, "Merhaba")], userName: "   ")
+        XCTAssertEqual(lines.first?.speaker, "You")
     }
 
     // MARK: - Batching used by the uploader

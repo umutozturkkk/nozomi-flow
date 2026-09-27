@@ -18,11 +18,11 @@ struct OnboardingAccessibilityStep: View {
                 OnboardingStepIcon(systemName: "accessibility")
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Accessibility access")
+                    Text(L10n.string("onboarding.accessibility.title"))
                         .font(.system(size: 24, weight: .bold, design: .rounded))
-                    Text("To type into other apps and hear your hotkey, macOS requires Accessibility access.")
+                    Text(L10n.string("onboarding.accessibility.body"))
                         .font(.body)
-                    Text("It's a standard macOS permission — Nozomi Flow only ever types what you dictate.")
+                    Text(L10n.string("onboarding.accessibility.note"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -30,7 +30,7 @@ struct OnboardingAccessibilityStep: View {
                 statusChip
 
                 if !appState.axTrusted {
-                    Label("We're watching for it automatically — no need to come back.", systemImage: "arrow.triangle.2.circlepath")
+                    Label(L10n.string("onboarding.accessibility.watching"), systemImage: "arrow.triangle.2.circlepath")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
@@ -56,12 +56,12 @@ struct OnboardingAccessibilityStep: View {
     @ViewBuilder
     private var statusChip: some View {
         if appState.axTrusted {
-            OnboardingStatusChip(icon: "checkmark.seal.fill", title: "Accessibility enabled", style: .success, bounce: true)
+            OnboardingStatusChip(icon: "checkmark.seal.fill", title: L10n.string("onboarding.accessibility.enabled"), style: .success, bounce: true)
         } else {
             OnboardingStatusChip(
                 icon: "hourglass",
-                title: "Waiting for permission",
-                subtitle: "Grant it below, or in System Settings \u{203A} Privacy & Security \u{203A} Accessibility.",
+                title: L10n.string("onboarding.accessibility.waiting"),
+                subtitle: L10n.string("onboarding.accessibility.waitingHint"),
                 style: .neutral
             )
         }
@@ -69,7 +69,7 @@ struct OnboardingAccessibilityStep: View {
 
     private var primarySpec: OnboardingButtonSpec? {
         guard !appState.axTrusted else { return nil }
-        return OnboardingButtonSpec(title: "Grant Access", systemImage: "lock.open") {
+        return OnboardingButtonSpec(title: L10n.string("onboarding.accessibility.grant"), systemImage: "lock.open") {
             permissions.promptAccessibility()
             permissions.openAccessibilitySettings()
         }

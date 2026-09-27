@@ -11,6 +11,7 @@ struct SettingsRootView: View {
     let history: HistoryStore
     let permissions: PermissionsService
     let meetingStore: MeetingStore
+    let trainingStore: TrainingSampleStore
 
     var body: some View {
         NavigationSplitView {
@@ -33,7 +34,7 @@ struct SettingsRootView: View {
     private var detailView: some View {
         switch tabSelection.tab {
         case .general:
-            GeneralSettingsView(settings: settings)
+            GeneralSettingsView(settings: settings, trainingStore: trainingStore)
         case .style:
             StyleSettingsView(settings: settings, appState: appState)
         case .dictionary:

@@ -11,7 +11,7 @@ struct StyleSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Formatting", selection: $settings.formattingLevel) {
+                Picker(L10n.string("settings.style.formatting"), selection: $settings.formattingLevel) {
                     ForEach(FormattingLevel.allCases, id: \.self) { level in
                         Text(formattingLabel(level)).tag(level)
                     }
@@ -22,43 +22,43 @@ struct StyleSettingsView: View {
             }
 
             Section {
-                Picker("AI engine", selection: $settings.llmEngine) {
+                Picker(L10n.string("settings.style.aiEngine"), selection: $settings.llmEngine) {
                     ForEach(LLMEngineChoice.allCases, id: \.self) { engine in
                         Text(engineLabel(engine)).tag(engine)
                     }
                 }
                 HStack(spacing: 6) {
                     StatusDot(isGood: aiStatusIsGood)
-                    Text(appState.aiAvailability.isEmpty ? "Checking…" : appState.aiAvailability)
+                    Text(appState.aiAvailability.isEmpty ? L10n.string("settings.checking") : appState.aiAvailability)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
 
                 if settings.llmEngine == .openAI {
-                    SecureField("API key", text: $settings.openAIKey)
-                    TextField("Model", text: $settings.openAIModel)
+                    SecureField(L10n.string("settings.apiKey"), text: $settings.openAIKey)
+                    TextField(L10n.string("settings.model"), text: $settings.openAIModel)
                 }
             } footer: {
                 if settings.llmEngine == .openAI {
-                    Text("Sent to OpenAI only when you dictate with this engine.")
+                    Text(L10n.string("settings.style.openAIFooter"))
                 }
             }
             .animation(.spring(response: 0.3, dampingFraction: 0.85), value: settings.llmEngine)
 
             Section {
-                Toggle("Remove filler words", isOn: $settings.removeFillers)
+                Toggle(L10n.string("settings.style.removeFillers"), isOn: $settings.removeFillers)
             }
 
             Section {
-                Toggle("Match tone to app", isOn: $settings.toneMatching)
+                Toggle(L10n.string("settings.style.toneMatching"), isOn: $settings.toneMatching)
             } footer: {
-                Text("Casual in Slack and Messages, polished in Mail.")
+                Text(L10n.string("settings.style.toneMatchingFooter"))
             }
 
             Section {
-                Toggle("Use on-screen context", isOn: $settings.captureFieldContext)
+                Toggle(L10n.string("settings.style.fieldContext"), isOn: $settings.captureFieldContext)
             } footer: {
-                Text("Reads the focused text field to improve formatting. Password fields are never read.")
+                Text(L10n.string("settings.style.fieldContextFooter"))
             }
 
             Section {
@@ -76,43 +76,42 @@ struct StyleSettingsView: View {
                             .strokeBorder(Color.primary.opacity(0.08))
                     )
             } header: {
-                Text("Custom instructions")
+                Text(L10n.string("settings.style.customInstructions"))
             } footer: {
-                Text("Extra guidance for the AI pass, e.g. \"Prefer bullet lists\" or \"Keep my Turkish slang as-is.\"")
+                Text(L10n.string("settings.style.customInstructionsFooter"))
             }
         }
         .formStyle(.grouped)
     }
 
     private var aiStatusIsGood: Bool {
-        let s = appState.aiAvailability.lowercased()
-        // "unavailable" itself contains "available" -- exclude it so a bad
-        // status string never reads as green.
-        return s.contains("ready") || (s.contains("available") && !s.contains("unavailable"))
+        // The status is localized, so compare against the one "ready" string
+        // rather than looking for English words in it.
+        appState.aiAvailability == L10n.string("ai.status.ready")
     }
 
     private var formattingFooter: String {
         switch settings.formattingLevel {
-        case .off: return "Verbatim transcript — nothing is changed after transcription."
-        case .light: return "Removes filler words and fixes capitalization."
-        case .full: return "AI cleanup — self-corrections, lists, and tone."
+        case .off: return L10n.string("settings.style.formattingFooter.off")
+        case .light: return L10n.string("settings.style.formattingFooter.light")
+        case .full: return L10n.string("settings.style.formattingFooter.full")
         }
     }
 
     private func formattingLabel(_ level: FormattingLevel) -> String {
         switch level {
-        case .off: return "Off"
-        case .light: return "Light"
-        case .full: return "Full"
+        case .off: return L10n.string("settings.style.formatting.off")
+        case .light: return L10n.string("settings.style.formatting.light")
+        case .full: return L10n.string("settings.style.formatting.full")
         }
     }
 
     private func engineLabel(_ choice: LLMEngineChoice) -> String {
         switch choice {
-        case .auto: return "Auto (Apple Intelligence)"
+        case .auto: return L10n.string("settings.style.engine.auto")
         case .appleIntelligence: return "Apple Intelligence"
         case .openAI: return "OpenAI"
-        case .none: return "None"
+        case .none: return L10n.string("settings.style.engine.none")
         }
     }
 }

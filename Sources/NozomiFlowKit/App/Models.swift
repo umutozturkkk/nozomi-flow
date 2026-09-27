@@ -40,13 +40,13 @@ enum DictationError: Error, Equatable {
 
     var userMessage: String {
         switch self {
-        case .noSpeechDetected: return "Didn't catch that"
-        case .tooShort: return "Too short"
-        case .cancelled: return "Cancelled"
-        case .micPermissionDenied: return "Microphone access needed"
-        case .modelUnavailable(let s): return "Speech model: \(s)"
-        case .transcriptionFailed: return "Transcription failed"
-        case .insertionFailed: return "Couldn't insert text"
+        case .noSpeechDetected: return L10n.string("error.dictation.noSpeech")
+        case .tooShort: return L10n.string("error.dictation.tooShort")
+        case .cancelled: return L10n.string("error.dictation.cancelled")
+        case .micPermissionDenied: return L10n.string("error.dictation.micPermission")
+        case .modelUnavailable(let s): return L10n.format("error.dictation.modelUnavailable", s)
+        case .transcriptionFailed: return L10n.string("error.dictation.transcriptionFailed")
+        case .insertionFailed: return L10n.string("error.dictation.insertionFailed")
         }
     }
 }
@@ -62,11 +62,11 @@ enum TranscriptionEngineKind: String, Equatable {
 
     var displayName: String {
         switch self {
-        case .cloud: return "Cloud"
+        case .cloud: return L10n.string("engine.cloud")
         case .speechAnalyzer: return "Apple SpeechAnalyzer"
-        case .dictation: return "Apple Dictation"
-        case .legacySF: return "Apple Speech (legacy)"
-        case .none: return "None"
+        case .dictation: return L10n.string("engine.dictation")
+        case .legacySF: return L10n.string("engine.legacy")
+        case .none: return L10n.string("engine.none")
         }
     }
 
@@ -78,6 +78,10 @@ struct TranscriptionOutcome: Equatable {
     var text: String
     var localeIdentifier: String?
     var engine: TranscriptionEngineKind
+    /// The exact 16 kHz mono PCM16 audio that was uploaded, when `text` came from
+    /// the cloud. nil for on-device results, including an on-device rescue of a
+    /// failed cloud request: those transcripts are not trustworthy training labels.
+    var audio: [Int16]? = nil
 }
 
 // MARK: - Context / tone
@@ -200,9 +204,9 @@ enum HotkeyChoice: String, Codable, CaseIterable, Equatable {
     var displayName: String {
         switch self {
         case .fn: return "fn 🌐"
-        case .rightCommand: return "Right ⌘"
-        case .rightOption: return "Right ⌥"
-        case .rightControl: return "Right ⌃"
+        case .rightCommand: return L10n.string("hotkey.rightCommand")
+        case .rightOption: return L10n.string("hotkey.rightOption")
+        case .rightControl: return L10n.string("hotkey.rightControl")
         }
     }
 

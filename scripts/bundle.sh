@@ -19,6 +19,14 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/NozomiFlow"
 cp "$ROOT/Support/Info.plist" "$APP/Contents/Info.plist"
+# Localized strings live in the NozomiFlowKit resource bundle. Bundle.module traps
+# when it can't find it, so a missing bundle must fail the build, not the app.
+RES_BUNDLE="$(swift build -c "$CONF" --show-bin-path)/NozomiFlow_NozomiFlowKit.bundle"
+if [ ! -d "$RES_BUNDLE" ]; then
+  echo "error: resource bundle not found at $RES_BUNDLE" >&2
+  exit 1
+fi
+cp -R "$RES_BUNDLE" "$APP/Contents/Resources/"
 if [ -f "$ROOT/Support/AppIcon.icns" ]; then
   cp "$ROOT/Support/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 fi

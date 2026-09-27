@@ -22,17 +22,17 @@ final class AppleIntelligenceFormatter {
     var availabilityDescription: String {
         switch SystemLanguageModel.default.availability {
         case .available:
-            return "Apple Intelligence ready"
+            return L10n.string("ai.status.ready")
         case .unavailable(let reason):
             switch reason {
             case .appleIntelligenceNotEnabled:
-                return "Apple Intelligence is turned off in System Settings"
+                return L10n.string("ai.status.off")
             case .deviceNotEligible:
-                return "This Mac isn't eligible for Apple Intelligence"
+                return L10n.string("ai.status.notEligible")
             case .modelNotReady:
-                return "Apple Intelligence model is still downloading"
+                return L10n.string("ai.status.downloading")
             @unknown default:
-                return "Apple Intelligence is unavailable"
+                return L10n.string("ai.status.unavailable")
             }
         }
     }

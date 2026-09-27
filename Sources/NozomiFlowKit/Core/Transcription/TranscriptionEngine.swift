@@ -200,7 +200,7 @@ final class TranscriptionEngine: TranscriptionServiceProtocol, CloudConfigurable
         let session: any TranscriptionBackendSession
         if await engineKind(for: locale) == .cloud {
             guard let cloud = CloudTranscriptionSession(config: currentCloudConfig, locale: locale) else {
-                throw DictationError.modelUnavailable("cloud")
+                throw DictationError.modelUnavailable(L10n.string("engine.cloud"))
             }
             session = cloud
         } else {
@@ -310,7 +310,18 @@ final class TranscriptionEngine: TranscriptionServiceProtocol, CloudConfigurable
         if timedOut, text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             throw DictationError.transcriptionFailed("transcription timed out with no output")
         }
-        return TranscriptionOutcome(text: text, localeIdentifier: session.resolvedLocaleIdentifier, engine: session.engineKind)
+        return TranscriptionOutcome(
+            text: text, localeIdentifier: session.resolvedLocaleIdentifier,
+            engine: session.engineKind, audio: Self.uploadedAudio(from: session)
+        )
+    }
+
+    /// The audio a cloud session uploaded, for training samples; nil for any
+    /// on-device session.
+    static func uploadedAudio(from session: any TranscriptionBackendSession) -> [Int16]? {
+        guard let cloud = session as? CloudTranscriptionSession else { return nil }
+        let samples = cloud.recordedSamples()
+        return samples.isEmpty ? nil : samples
     }
 
     /// Feeds the audio the cloud session already captured through an on-device engine.

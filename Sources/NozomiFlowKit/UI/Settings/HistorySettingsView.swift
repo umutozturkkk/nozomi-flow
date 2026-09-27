@@ -36,14 +36,19 @@ struct HistorySettingsView: View {
             content
         }
         .confirmationDialog(
-            "Clear All History?",
+            L10n.string("settings.history.clearConfirm.title"),
             isPresented: $isPresentingClearConfirm,
             titleVisibility: .visible
         ) {
-            Button("Clear All", role: .destructive) { history.clear() }
-            Button("Cancel", role: .cancel) {}
+            Button(L10n.string("settings.history.clearAll"), role: .destructive) { history.clear() }
+            Button(L10n.string("common.cancel"), role: .cancel) {}
         } message: {
-            Text("This deletes \(history.entries.count) dictation\(history.entries.count == 1 ? "" : "s"). This can't be undone.")
+            Text(L10n.format(
+                history.entries.count == 1
+                    ? "settings.history.clearConfirm.message.one"
+                    : "settings.history.clearConfirm.message.other",
+                history.entries.count
+            ))
         }
     }
 
@@ -52,11 +57,11 @@ struct HistorySettingsView: View {
     private var statsStrip: some View {
         let stats = history.stats
         return HStack(spacing: 10) {
-            StatCard(icon: "textformat", tint: .blue, value: "\(stats.totalWords)", label: "Total words")
-            StatCard(icon: "speedometer", tint: .green, value: String(format: "%.1f", stats.averageWPM), label: "Avg WPM")
-            StatCard(icon: "flame.fill", tint: stats.streakDays > 0 ? .orange : .secondary, value: "\(stats.streakDays)", label: "Streak")
-            StatCard(icon: "clock.badge.checkmark", tint: .purple, value: "\(Int(stats.minutesSaved.rounded()))", label: "Minutes saved")
-            StatCard(icon: "checkmark.seal", tint: .pink, value: "\(stats.totalCorrections)", label: "Corrections")
+            StatCard(icon: "textformat", tint: .blue, value: "\(stats.totalWords)", label: L10n.string("settings.history.stat.totalWords"))
+            StatCard(icon: "speedometer", tint: .green, value: String(format: "%.1f", stats.averageWPM), label: L10n.string("settings.history.stat.avgWPM"))
+            StatCard(icon: "flame.fill", tint: stats.streakDays > 0 ? .orange : .secondary, value: "\(stats.streakDays)", label: L10n.string("settings.history.stat.streak"))
+            StatCard(icon: "clock.badge.checkmark", tint: .purple, value: "\(Int(stats.minutesSaved.rounded()))", label: L10n.string("settings.history.stat.minutesSaved"))
+            StatCard(icon: "checkmark.seal", tint: .pink, value: "\(stats.totalCorrections)", label: L10n.string("settings.history.stat.corrections"))
         }
     }
 
@@ -67,7 +72,7 @@ struct HistorySettingsView: View {
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("Search dictations", text: $query)
+                TextField(L10n.string("settings.history.searchPlaceholder"), text: $query)
                     .textFieldStyle(.plain)
                 if !query.isEmpty {
                     Button {
@@ -89,7 +94,7 @@ struct HistorySettingsView: View {
             Button(role: .destructive) {
                 isPresentingClearConfirm = true
             } label: {
-                Label("Clear All", systemImage: "trash")
+                Label(L10n.string("settings.history.clearAll"), systemImage: "trash")
             }
             .disabled(history.entries.isEmpty)
         }
@@ -99,11 +104,11 @@ struct HistorySettingsView: View {
         HStack(spacing: 8) {
             Image(systemName: "info.circle.fill")
                 .foregroundStyle(.secondary)
-            Text("History is off — new dictations aren't being saved.")
+            Text(L10n.string("settings.history.disabledBanner"))
                 .font(.callout)
                 .foregroundStyle(.secondary)
             Spacer()
-            Button("Enable") { settings.historyEnabled = true }
+            Button(L10n.string("settings.history.enable")) { settings.historyEnabled = true }
                 .controlSize(.small)
         }
         .padding(.horizontal, 12)
@@ -153,20 +158,23 @@ struct HistorySettingsView: View {
         .padding(.vertical, 3)
         .contentShape(Rectangle())
         .contextMenu {
-            Button("Copy") { copy(entry.finalText) }
-            Button("Copy Raw Transcript") { copy(entry.rawText) }
+            Button(L10n.string("settings.history.copy")) { copy(entry.finalText) }
+            Button(L10n.string("settings.history.copyRaw")) { copy(entry.rawText) }
             Divider()
-            Button("Delete", role: .destructive) { history.delete(id: entry.id) }
+            Button(L10n.string("common.delete"), role: .destructive) { history.delete(id: entry.id) }
         }
         .swipeActions {
-            Button("Delete", role: .destructive) { history.delete(id: entry.id) }
+            Button(L10n.string("common.delete"), role: .destructive) { history.delete(id: entry.id) }
         }
     }
 
     private func subLine(_ entry: HistoryEntry) -> String {
-        let app = entry.appName ?? "Unknown app"
+        let app = entry.appName ?? L10n.string("settings.history.unknownApp")
         let time = entry.date.formatted(.relative(presentation: .named))
-        let words = "\(entry.wordCount) word\(entry.wordCount == 1 ? "" : "s")"
+        let words = L10n.format(
+            entry.wordCount == 1 ? "settings.history.words.one" : "settings.history.words.other",
+            entry.wordCount
+        )
         return "\(app) · \(time) · \(words)"
     }
 
@@ -186,7 +194,7 @@ struct HistorySettingsView: View {
                 .foregroundStyle(.blue)
                 .symbolEffect(.bounce, value: emptyBounce)
                 .onAppear { emptyBounce.toggle() }
-            Text("Nothing yet — hold your dictation key and just talk.")
+            Text(L10n.string("settings.history.empty"))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -201,7 +209,7 @@ struct HistorySettingsView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 28))
                 .foregroundStyle(.secondary)
-            Text("No matches for \"\(query)\"")
+            Text(L10n.format("settings.history.noMatches", query))
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
